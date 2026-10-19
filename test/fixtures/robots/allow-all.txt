@@ -1,0 +1,7 @@
+# Example Outdoor
+User-agent: *
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /*?add-to-cart=
+
+Sitemap: https://STORE_HOST/sitemap_index.xml

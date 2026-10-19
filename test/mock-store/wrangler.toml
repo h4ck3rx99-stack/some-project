@@ -1,0 +1,4 @@
+# Local mock store for development: `npm run mock-store` (port 8788).
+name = "cartprobe-mock-store"
+main = "worker.ts"
+compatibility_date = "2026-10-01"

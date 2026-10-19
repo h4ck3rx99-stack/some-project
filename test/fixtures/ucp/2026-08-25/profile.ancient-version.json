@@ -1,0 +1,48 @@
+{
+  "ucp": {
+    "version": "2026-01-11",
+    "services": {
+      "dev.ucp.shopping": [
+        {
+          "version": "2026-01-11",
+          "spec": "https://ucp.dev/2026-01-11/specification/overview/",
+          "transport": "rest",
+          "endpoint": "https://STORE_HOST/ucp/v1",
+          "schema": "https://ucp.dev/2026-01-11/services/shopping/rest.openapi.json"
+        },
+        {
+          "version": "2026-01-11",
+          "spec": "https://ucp.dev/2026-01-11/specification/overview/",
+          "transport": "mcp",
+          "endpoint": "https://STORE_HOST/ucp/mcp",
+          "schema": "https://ucp.dev/2026-01-11/services/shopping/mcp.openrpc.json"
+        }
+      ]
+    },
+    "capabilities": {
+      "dev.ucp.shopping.checkout": [
+        {
+          "version": "2026-01-11",
+          "spec": "https://ucp.dev/2026-01-11/specification/shopping/checkout",
+          "schema": "https://ucp.dev/2026-01-11/schemas/shopping/checkout.json"
+        }
+      ],
+      "dev.ucp.shopping.order": [
+        {
+          "version": "2026-01-11",
+          "spec": "https://ucp.dev/2026-01-11/specification/shopping/order",
+          "schema": "https://ucp.dev/2026-01-11/schemas/shopping/order.json"
+        }
+      ],
+      "dev.ucp.shopping.discount": [
+        {
+          "version": "2026-01-11",
+          "spec": "https://ucp.dev/2026-01-11/specification/shopping/extensions/discount",
+          "schema": "https://ucp.dev/2026-01-11/schemas/shopping/discount.json",
+          "extends": "dev.ucp.shopping.checkout"
+        }
+      ]
+    },
+    "payment_handlers": {}
+  }
+}

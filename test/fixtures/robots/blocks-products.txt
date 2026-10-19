@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /product/
+Allow: /
+
+Sitemap: https://STORE_HOST/sitemap_index.xml

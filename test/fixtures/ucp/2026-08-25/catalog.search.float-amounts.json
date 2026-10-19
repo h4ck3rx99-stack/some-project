@@ -1,0 +1,181 @@
+{
+  "ucp": {
+    "version": "2026-08-25",
+    "capabilities": {
+      "dev.ucp.shopping.catalog.search": [
+        {
+          "version": "2026-08-25"
+        }
+      ]
+    }
+  },
+  "products": [
+    {
+      "id": "prod_brp",
+      "handle": "blue-runner-pro",
+      "title": "Blue Runner Pro",
+      "description": {
+        "plain": "Lightweight running shoes."
+      },
+      "url": "https://STORE_HOST/product/blue-runner-pro",
+      "price_range": {
+        "min": {
+          "amount": 119.99,
+          "currency": "USD"
+        },
+        "max": {
+          "amount": 12000,
+          "currency": "USD"
+        }
+      },
+      "media": [
+        {
+          "type": "image",
+          "url": "https://STORE_HOST/img/blue-runner-pro.jpg",
+          "alt_text": "Blue Runner Pro"
+        }
+      ],
+      "variants": [
+        {
+          "id": "prod_brp_10",
+          "sku": "BRP-BLU-10",
+          "title": "Size 10",
+          "description": {
+            "plain": "Size 10 variant"
+          },
+          "price": {
+            "amount": 120.0001,
+            "currency": "USD"
+          },
+          "availability": {
+            "available": true,
+            "status": "in_stock"
+          }
+        }
+      ]
+    },
+    {
+      "id": "prod_tj",
+      "handle": "trail-jacket",
+      "title": "Trail Jacket",
+      "description": {
+        "plain": "Waterproof trail jacket."
+      },
+      "url": "https://STORE_HOST/product/trail-jacket",
+      "price_range": {
+        "min": {
+          "amount": 8950,
+          "currency": "USD"
+        },
+        "max": {
+          "amount": 8950,
+          "currency": "USD"
+        }
+      },
+      "media": [
+        {
+          "type": "image",
+          "url": "https://STORE_HOST/img/trail-jacket.jpg",
+          "alt_text": "Trail Jacket"
+        }
+      ],
+      "variants": [
+        {
+          "id": "prod_tj_m",
+          "sku": "TJ-GRN-M",
+          "title": "Medium",
+          "description": {
+            "plain": "Medium variant"
+          },
+          "price": {
+            "amount": 8950,
+            "currency": "USD"
+          },
+          "availability": {
+            "available": true,
+            "status": "in_stock"
+          }
+        },
+        {
+          "id": "prod_tj_l",
+          "sku": "TJ-GRN-L",
+          "title": "Large",
+          "description": {
+            "plain": "Large variant"
+          },
+          "price": {
+            "amount": 8950,
+            "currency": "USD"
+          },
+          "availability": {
+            "available": true,
+            "status": "in_stock"
+          }
+        }
+      ]
+    },
+    {
+      "id": "prod_mt",
+      "handle": "merino-tee",
+      "title": "Merino Tee",
+      "description": {
+        "plain": "Soft merino wool t-shirt."
+      },
+      "url": "https://STORE_HOST/product/merino-tee",
+      "price_range": {
+        "min": {
+          "amount": 3500,
+          "currency": "USD"
+        },
+        "max": {
+          "amount": 3500,
+          "currency": "USD"
+        }
+      },
+      "media": [
+        {
+          "type": "image",
+          "url": "https://STORE_HOST/img/merino-tee.jpg",
+          "alt_text": "Merino Tee"
+        }
+      ],
+      "variants": [
+        {
+          "id": "prod_mt_s",
+          "sku": "MT-BLK-S",
+          "title": "Small",
+          "description": {
+            "plain": "Small variant"
+          },
+          "price": {
+            "amount": 3500,
+            "currency": "USD"
+          },
+          "availability": {
+            "available": true,
+            "status": "in_stock"
+          }
+        },
+        {
+          "id": "prod_mt_m",
+          "sku": "MT-BLK-M",
+          "title": "Medium",
+          "description": {
+            "plain": "Medium variant"
+          },
+          "price": {
+            "amount": 3500,
+            "currency": "USD"
+          },
+          "availability": {
+            "available": false,
+            "status": "out_of_stock"
+          }
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "has_next_page": false
+  }
+}

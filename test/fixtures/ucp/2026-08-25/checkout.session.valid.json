@@ -1,0 +1,58 @@
+{
+  "ucp": {
+    "version": "2026-08-25",
+    "capabilities": {
+      "dev.ucp.shopping.checkout": [
+        {
+          "version": "2026-08-25"
+        }
+      ]
+    },
+    "payment_handlers": {}
+  },
+  "id": "chk_test_0001",
+  "status": "incomplete",
+  "currency": "USD",
+  "line_items": [
+    {
+      "id": "li_1",
+      "item": {
+        "id": "prod_brp_10",
+        "title": "Blue Runner Pro",
+        "price": 12000
+      },
+      "quantity": 1,
+      "totals": [
+        {
+          "type": "subtotal",
+          "amount": 12000
+        },
+        {
+          "type": "total",
+          "amount": 12000
+        }
+      ]
+    }
+  ],
+  "totals": [
+    {
+      "type": "subtotal",
+      "amount": 12000
+    },
+    {
+      "type": "tax",
+      "amount": 960
+    },
+    {
+      "type": "total",
+      "amount": 12960
+    }
+  ],
+  "links": [
+    {
+      "type": "terms_of_service",
+      "url": "https://STORE_HOST/terms"
+    }
+  ],
+  "continue_url": "https://STORE_HOST/checkout/chk_test_0001"
+}

@@ -200,7 +200,7 @@ async function readCapped(
     buf.set(c, off);
     off += c.byteLength;
   }
-  return { text: new TextDecoder('utf-8', { fatal: false }).decode(buf), truncated };
+  return { text: new TextDecoder().decode(buf), truncated };
 }
 
 function looksJson(ct: string | null): boolean {
