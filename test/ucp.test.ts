@@ -6,7 +6,9 @@ import { RAW_FIXTURES } from './fixtures/fixtures.generated';
 import { jsonFixture } from './fixtures';
 
 // Vendored schema folders are bundled at build time; list them via the generated validator modules.
-const vendoredFolders = Object.keys(import.meta.glob('../schemas/ucp/*/ucp.json')).map((p) => p.split('/')[3]);
+const vendoredFolders = Object.keys(import.meta.glob('../schemas/ucp/*/ucp.json')).map(
+  (p) => p.split('/')[3],
+);
 
 describe('vendored versions', () => {
   it('versions.ts matches the schema folders exactly', () => {
@@ -53,11 +55,22 @@ describe('authority binding (cases from the spec table)', () => {
 
 describe('validators', () => {
   it('accept the valid fixtures and reject the invalid ones', () => {
-    expect(validate('profile', jsonFixture('ucp/2026-08-25/profile.valid.json'), '2026-08-25').valid).toBe(true);
-    expect(validate('profile', jsonFixture('ucp/2026-08-25/profile.previous-version.json'), '2026-04-08').valid).toBe(true);
-    expect(validate('profile', jsonFixture('ucp/2026-08-25/profile.schema-invalid.json'), '2026-08-25').valid).toBe(false);
-    expect(validate('catalogSearchResponse', jsonFixture('ucp/2026-08-25/catalog.search.valid.json'), '2026-08-25').valid).toBe(true);
-    expect(validate('checkout', jsonFixture('ucp/2026-08-25/checkout.session.valid.json'), '2026-08-25').valid).toBe(true);
+    expect(validate('profile', jsonFixture('ucp/2026-08-25/profile.valid.json'), '2026-08-25').valid).toBe(
+      true,
+    );
+    expect(
+      validate('profile', jsonFixture('ucp/2026-08-25/profile.previous-version.json'), '2026-04-08').valid,
+    ).toBe(true);
+    expect(
+      validate('profile', jsonFixture('ucp/2026-08-25/profile.schema-invalid.json'), '2026-08-25').valid,
+    ).toBe(false);
+    expect(
+      validate('catalogSearchResponse', jsonFixture('ucp/2026-08-25/catalog.search.valid.json'), '2026-08-25')
+        .valid,
+    ).toBe(true);
+    expect(
+      validate('checkout', jsonFixture('ucp/2026-08-25/checkout.session.valid.json'), '2026-08-25').valid,
+    ).toBe(true);
     expect(Object.keys(RAW_FIXTURES).length).toBeGreaterThan(20);
   });
 });

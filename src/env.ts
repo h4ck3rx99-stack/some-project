@@ -58,9 +58,20 @@ export const envSchema = z
     MOCK_STORE_ORIGIN: z.string().optional(),
   })
   .superRefine((e, ctx) => {
-    if (e.EMAIL_PROVIDER === 'resend' && !e.EMAIL_API_KEY) ctx.addIssue({ code: 'custom', path: ['EMAIL_API_KEY'], message: 'required when EMAIL_PROVIDER=resend' });
-    if (e.BILLING_PROVIDER === 'webhook' && !e.BILLING_WEBHOOK_SECRET) ctx.addIssue({ code: 'custom', path: ['BILLING_WEBHOOK_SECRET'], message: 'required when BILLING_PROVIDER=webhook' });
-    if (e.ENVIRONMENT === 'production' && !e.APP_URL.startsWith('https://')) ctx.addIssue({ code: 'custom', path: ['APP_URL'], message: 'must be https in production' });
+    if (e.EMAIL_PROVIDER === 'resend' && !e.EMAIL_API_KEY)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['EMAIL_API_KEY'],
+        message: 'required when EMAIL_PROVIDER=resend',
+      });
+    if (e.BILLING_PROVIDER === 'webhook' && !e.BILLING_WEBHOOK_SECRET)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['BILLING_WEBHOOK_SECRET'],
+        message: 'required when BILLING_PROVIDER=webhook',
+      });
+    if (e.ENVIRONMENT === 'production' && !e.APP_URL.startsWith('https://'))
+      ctx.addIssue({ code: 'custom', path: ['APP_URL'], message: 'must be https in production' });
   });
 
 export type AppEnv = z.infer<typeof envSchema>;
@@ -80,5 +91,8 @@ export function appEnv(bindings: Bindings): AppEnv {
 }
 
 export function adminEmails(env: AppEnv): string[] {
-  return (env.ADMIN_EMAILS ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  return (env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
 }

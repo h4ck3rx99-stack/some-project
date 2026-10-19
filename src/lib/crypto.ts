@@ -21,8 +21,14 @@ export async function sha256Hex(input: string): Promise<string> {
   return toHex(await crypto.subtle.digest('SHA-256', enc.encode(input)));
 }
 
-export async function hmacHex(secret: string, message: string | Uint8Array, hash: 'SHA-256' = 'SHA-256'): Promise<string> {
-  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash }, false, ['sign']);
+export async function hmacHex(
+  secret: string,
+  message: string | Uint8Array,
+  hash: 'SHA-256' = 'SHA-256',
+): Promise<string> {
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash }, false, [
+    'sign',
+  ]);
   const data = typeof message === 'string' ? enc.encode(message) : message;
   return toHex(await crypto.subtle.sign('HMAC', key, data));
 }
@@ -61,14 +67,22 @@ async function aesKey(base64Key: string): Promise<CryptoKey> {
 /** Encrypt a secret (alert targets) → "v1.<iv>.<ciphertext>" base64url. */
 export async function encryptSecret(base64Key: string, plaintext: string): Promise<string> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await aesKey(base64Key), enc.encode(plaintext));
+  const ct = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    await aesKey(base64Key),
+    enc.encode(plaintext),
+  );
   return `v1.${toB64Url(iv)}.${toB64Url(new Uint8Array(ct))}`;
 }
 
 export async function decryptSecret(base64Key: string, payload: string): Promise<string> {
   const [v, iv, ct] = payload.split('.');
   if (v !== 'v1' || !iv || !ct) throw new Error('unsupported ciphertext');
-  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(iv) }, await aesKey(base64Key), fromB64(ct));
+  const pt = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: fromB64(iv) },
+    await aesKey(base64Key),
+    fromB64(ct),
+  );
   return new TextDecoder().decode(pt);
 }
 

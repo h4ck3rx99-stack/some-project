@@ -12,7 +12,15 @@ import { prepareDiscovery } from '../checks/discovery';
 import { prepareProducts } from '../checks/products';
 import { MAX_EVIDENCE, truncate } from '../checks/helpers';
 import { hasCapability } from '../ucp/profile';
-import type { CheckDefinition, CheckPhase, CheckRecord, Evidence, Phase, ScanContext, ScanState } from './types';
+import type {
+  CheckDefinition,
+  CheckPhase,
+  CheckRecord,
+  Evidence,
+  Phase,
+  ScanContext,
+  ScanState,
+} from './types';
 
 export function initialState(): ScanState {
   return { results: {}, requestsMade: 0 };
@@ -21,16 +29,18 @@ export function initialState(): ScanState {
 export function phaseLabel(phase: string): string {
   if (phase.startsWith('products:')) return 'Sampling product pages';
   return (
-    {
-      discovery: 'Fetching UCP profile',
-      catalog: 'Testing catalog search',
-      consistency: 'Comparing catalog and pages',
-      basics: 'Checking site basics',
-      checkout: 'Checking checkout',
-      finalize: 'Scoring',
-      done: 'Done',
-    } as Record<string, string>
-  )[phase] ?? phase;
+    (
+      {
+        discovery: 'Fetching UCP profile',
+        catalog: 'Testing catalog search',
+        consistency: 'Comparing catalog and pages',
+        basics: 'Checking site basics',
+        checkout: 'Checking checkout',
+        finalize: 'Scoring',
+        done: 'Done',
+      } as Record<string, string>
+    )[phase] ?? phase
+  );
 }
 
 function cleanEvidence(ev: Evidence[]): Evidence[] {
@@ -42,7 +52,14 @@ function cleanEvidence(ev: Evidence[]): Evidence[] {
   }));
 }
 
-function record(def: CheckDefinition, status: CheckRecord['status'], summary: string, evidence: Evidence[], meta?: Record<string, unknown>, fixGuide?: string): CheckRecord {
+function record(
+  def: CheckDefinition,
+  status: CheckRecord['status'],
+  summary: string,
+  evidence: Evidence[],
+  meta?: Record<string, unknown>,
+  fixGuide?: string,
+): CheckRecord {
   return {
     checkId: def.id,
     title: def.title,
@@ -67,13 +84,25 @@ export async function runCheck(def: CheckDefinition, ctx: ScanContext): Promise<
     }
   }
   if (def.requires?.verifiedOwnership && !deepCheckoutAllowed(ctx)) {
-    return record(def, 'skip', 'Runs only for stores with verified ownership and a confirmed test-mode checkout endpoint.', []);
+    return record(
+      def,
+      'skip',
+      'Runs only for stores with verified ownership and a confirmed test-mode checkout endpoint.',
+      [],
+    );
   }
   if (def.requires?.capability) {
     const json = ctx.state.profile?.json;
-    if (json === undefined) return record(def, 'skip', 'Skipped because the UCP profile could not be read.', []);
+    if (json === undefined)
+      return record(def, 'skip', 'Skipped because the UCP profile could not be read.', []);
     if (!hasCapability(json, def.requires.capability)) {
-      return record(def, 'skip', `Not offered: your profile does not declare ${def.requires.capability}. Consider enabling it so agents can use this feature.`, [], { notOffered: true });
+      return record(
+        def,
+        'skip',
+        `Not offered: your profile does not declare ${def.requires.capability}. Consider enabling it so agents can use this feature.`,
+        [],
+        { notOffered: true },
+      );
     }
   }
   try {
@@ -143,7 +172,9 @@ export function checksForPhase(phase: Phase): CheckDefinition[] {
 /** Mark the checks of a failed phase as `error` so the scan can finish. */
 export function errorPhase(phase: Phase, ctx: ScanContext, message: string): CheckRecord[] {
   return checksForPhase(phase).map((def) => {
-    const r = record(def, 'error', 'This check could not run after several attempts.', [{ label: 'Error', found: truncate(message, 300) }]);
+    const r = record(def, 'error', 'This check could not run after several attempts.', [
+      { label: 'Error', found: truncate(message, 300) },
+    ]);
     ctx.state.results[def.id] = r;
     return r;
   });

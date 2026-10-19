@@ -6,7 +6,10 @@ import type { FetchLike } from './safeFetch';
  * validated the original URL. Production always uses the global fetch.
  */
 export function makeTransport(env: { ENVIRONMENT?: string; MOCK_STORE_ORIGIN?: string }): FetchLike {
-  const mock = env.ENVIRONMENT === 'development' && env.MOCK_STORE_ORIGIN ? env.MOCK_STORE_ORIGIN.replace(/\/$/, '') : '';
+  const mock =
+    env.ENVIRONMENT === 'development' && env.MOCK_STORE_ORIGIN
+      ? env.MOCK_STORE_ORIGIN.replace(/\/$/, '')
+      : '';
   return async (req) => {
     const url = new URL(req.url);
     if (mock && url.hostname.endsWith('.mockstore.test')) {
@@ -14,7 +17,15 @@ export function makeTransport(env: { ENVIRONMENT?: string; MOCK_STORE_ORIGIN?: s
       headers.set('x-mock-host', url.hostname);
       if (url.protocol === 'http:') headers.set('x-mock-proto', 'http');
       const body = req.method === 'GET' || req.method === 'HEAD' ? undefined : await req.text();
-      return fetch(new Request(mock + url.pathname + url.search, { method: req.method, headers, body, redirect: 'manual', signal: req.signal }));
+      return fetch(
+        new Request(mock + url.pathname + url.search, {
+          method: req.method,
+          headers,
+          body,
+          redirect: 'manual',
+          signal: req.signal,
+        }),
+      );
     }
     return fetch(req);
   };

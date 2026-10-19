@@ -3,10 +3,25 @@ import type { FetchSession } from '../lib/safeFetch';
 export type CheckStatus = 'pass' | 'warn' | 'fail' | 'skip' | 'error';
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 export type Category = 'discovery' | 'catalog' | 'products' | 'consistency' | 'basics' | 'checkout';
-export const CATEGORIES: Category[] = ['discovery', 'catalog', 'products', 'consistency', 'basics', 'checkout'];
+export const CATEGORIES: Category[] = [
+  'discovery',
+  'catalog',
+  'products',
+  'consistency',
+  'basics',
+  'checkout',
+];
 
 /** Phases a scan job moves through. `products:<offset>` fetches product pages in chunks. */
-export type Phase = 'discovery' | 'catalog' | `products:${number}` | 'consistency' | 'basics' | 'checkout' | 'finalize' | 'done';
+export type Phase =
+  | 'discovery'
+  | 'catalog'
+  | `products:${number}`
+  | 'consistency'
+  | 'basics'
+  | 'checkout'
+  | 'finalize'
+  | 'done';
 
 export interface Evidence {
   label: string;
@@ -118,14 +133,28 @@ export interface ScanState {
   validationVersion?: string;
   restEndpoint?: string;
   homepage?: { fetch: FetchSummary; title?: string };
-  catalog?: { query: string; fetch?: FetchSummary; json?: unknown; skippedReason?: string; products: CatalogProduct[] };
+  catalog?: {
+    query: string;
+    fetch?: FetchSummary;
+    json?: unknown;
+    skippedReason?: string;
+    products: CatalogProduct[];
+  };
   robots?: { fetch: FetchSummary; text?: string };
   sitemaps?: { tried: string[]; found: string[]; productSitemap?: string };
   productUrls?: string[];
   sampled?: string[];
   robotsBlocked?: { url: string; rule: string }[];
   productPages?: ProductPage[];
-  checkout?: { createFetch?: FetchSummary; json?: unknown; cancelFetch?: FetchSummary; cancelJson?: unknown; sessionId?: string; itemId?: string; skippedReason?: string };
+  checkout?: {
+    createFetch?: FetchSummary;
+    json?: unknown;
+    cancelFetch?: FetchSummary;
+    cancelJson?: unknown;
+    sessionId?: string;
+    itemId?: string;
+    skippedReason?: string;
+  };
   results: Record<string, CheckRecord>;
   requestsMade: number;
 }

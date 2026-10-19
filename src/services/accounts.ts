@@ -21,7 +21,9 @@ export async function ensureUser(d1: D1Database, email: string, role: 'user' | '
     const accountId = newId('acc_');
     await db.batch([
       db.insert(schema.users).values({ id: userId, email: e, role, createdAt: now }),
-      db.insert(schema.accounts).values({ id: accountId, name: e.split('@')[1] ?? 'My account', createdAt: now }),
+      db
+        .insert(schema.accounts)
+        .values({ id: accountId, name: e.split('@')[1] ?? 'My account', createdAt: now }),
       db.insert(schema.accountMembers).values({ accountId, userId, role: 'owner' }),
     ]);
     user = (await db.query.users.findFirst({ where: eq(schema.users.id, userId) }))!;

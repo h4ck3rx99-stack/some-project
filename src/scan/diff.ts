@@ -30,7 +30,11 @@ const isOk = (s: CheckStatus | undefined) => s === 'pass' || s === 'warn';
  * @param previous       the store's previous completed scan (null for the first scan)
  * @param beforePrevious the one before that (used so endpoint_down fires once per outage)
  */
-export function diffScans(current: ScanSnapshot, previous: ScanSnapshot | null, beforePrevious: ScanSnapshot | null = null): AlertEvent[] {
+export function diffScans(
+  current: ScanSnapshot,
+  previous: ScanSnapshot | null,
+  beforePrevious: ScanSnapshot | null = null,
+): AlertEvent[] {
   if (!previous) return [];
   const profileNow = current.statuses[PROFILE_CHECK];
   const profilePrev = previous.statuses[PROFILE_CHECK];
@@ -41,18 +45,27 @@ export function diffScans(current: ScanSnapshot, previous: ScanSnapshot | null, 
   const events: AlertEvent[] = [];
   if (isBad(profileNow) && isBad(profilePrev)) {
     // Fire once when the outage is confirmed, not on every following day.
-    if (!beforePrevious || !isBad(beforePrevious.statuses[PROFILE_CHECK])) events.push({ kind: 'endpoint_down', consecutive: 2 });
+    if (!beforePrevious || !isBad(beforePrevious.statuses[PROFILE_CHECK]))
+      events.push({ kind: 'endpoint_down', consecutive: 2 });
     return events;
   }
 
   const title = (id: string) => current.titles?.[id] ?? previous.titles?.[id] ?? id;
   for (const [id, now] of Object.entries(current.statuses)) {
     const before = previous.statuses[id];
-    if (isOk(before) && isBad(now)) events.push({ kind: 'new_failure', checkId: id, title: title(id), from: before!, to: now });
-    else if (isBad(before) && now === 'pass') events.push({ kind: 'recovered', checkId: id, title: title(id), from: before! });
+    if (isOk(before) && isBad(now))
+      events.push({ kind: 'new_failure', checkId: id, title: title(id), from: before!, to: now });
+    else if (isBad(before) && now === 'pass')
+      events.push({ kind: 'recovered', checkId: id, title: title(id), from: before! });
   }
-  if (previous.score - current.score >= SCORE_DROP_THRESHOLD) events.push({ kind: 'score_drop', from: previous.score, to: current.score });
-  if (previous.statuses[VERSION_CHECK] === 'pass' && current.statuses[VERSION_CHECK] !== undefined && current.statuses[VERSION_CHECK] !== 'pass' && current.statuses[VERSION_CHECK] !== 'skip') {
+  if (previous.score - current.score >= SCORE_DROP_THRESHOLD)
+    events.push({ kind: 'score_drop', from: previous.score, to: current.score });
+  if (
+    previous.statuses[VERSION_CHECK] === 'pass' &&
+    current.statuses[VERSION_CHECK] !== undefined &&
+    current.statuses[VERSION_CHECK] !== 'pass' &&
+    current.statuses[VERSION_CHECK] !== 'skip'
+  ) {
     events.push({ kind: 'version_outdated', version: current.specVersionSeen });
   }
   return events;

@@ -43,7 +43,13 @@ export function scoreCategory(category: Category, results: ScorableResult[]): Ca
     earned += w * credit;
     possible += w;
   }
-  return { category, score: possible > 0 ? Math.round((earned / possible) * 1000) / 10 : null, earned, possible, counts };
+  return {
+    category,
+    score: possible > 0 ? Math.round((earned / possible) * 1000) / 10 : null,
+    earned,
+    possible,
+    counts,
+  };
 }
 
 export function gradeFor(score: number): Grade {
@@ -70,7 +76,10 @@ export function scoreScan(results: ScorableResult[], opts: { includeCheckout: bo
   }
   let score = totalWeight > 0 ? Math.round(weighted / totalWeight) : 0;
   const gate = (results as (ScorableResult & { checkId?: string })[]).find(
-    (r) => r.category === 'discovery' && r.severity === 'critical' && (r.status === 'fail' || r.status === 'error'),
+    (r) =>
+      r.category === 'discovery' &&
+      r.severity === 'critical' &&
+      (r.status === 'fail' || r.status === 'error'),
   );
   let cappedBy: string | undefined;
   if (gate && score > DISCOVERY_GATE_CAP) {
@@ -78,7 +87,10 @@ export function scoreScan(results: ScorableResult[], opts: { includeCheckout: bo
     cappedBy = gate.checkId ?? 'discovery';
   } else if (!gate) {
     const critical = (results as (ScorableResult & { checkId?: string })[]).find(
-      (r) => r.severity === 'critical' && (r.status === 'fail' || r.status === 'error') && (r.category !== 'checkout' || opts.includeCheckout),
+      (r) =>
+        r.severity === 'critical' &&
+        (r.status === 'fail' || r.status === 'error') &&
+        (r.category !== 'checkout' || opts.includeCheckout),
     );
     if (critical && score > CRITICAL_FAIL_CAP) {
       score = CRITICAL_FAIL_CAP;

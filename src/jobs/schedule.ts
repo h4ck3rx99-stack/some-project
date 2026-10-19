@@ -27,7 +27,10 @@ async function recordCron(d1: D1Database, name: string, started: number, result:
   await getDb(d1)
     .insert(schema.cronRuns)
     .values({ name, lastRunAt: started, lastDurationMs: now - started, lastResult: result.slice(0, 500) })
-    .onConflictDoUpdate({ target: schema.cronRuns.name, set: { lastRunAt: started, lastDurationMs: now - started, lastResult: result.slice(0, 500) } });
+    .onConflictDoUpdate({
+      target: schema.cronRuns.name,
+      set: { lastRunAt: started, lastDurationMs: now - started, lastResult: result.slice(0, 500) },
+    });
 }
 
 /** Deterministic 0..3599 s offset per store so daily scans spread across the hour. */
@@ -40,9 +43,18 @@ export function staggerSeconds(storeId: string): number {
 /** @param stagger spread runs across the hour (off in development so a manual cron trigger runs at once). */
 export async function enqueueDailyScans(d1: D1Database, now = Date.now(), stagger = true): Promise<number> {
   const db = getDb(d1);
-  const rows = await db.select({ s: schema.stores, a: schema.accounts }).from(schema.stores).innerJoin(schema.accounts, eq(schema.accounts.id, schema.stores.accountId)).where(eq(schema.stores.monitoring, 1));
+  const rows = await db
+    .select({ s: schema.stores, a: schema.accounts })
+    .from(schema.stores)
+    .innerJoin(schema.accounts, eq(schema.accounts.id, schema.stores.accountId))
+    .where(eq(schema.stores.monitoring, 1));
   const busy = new Set(
-    (await db.select({ storeId: schema.scans.storeId }).from(schema.scans).where(inArray(schema.scans.status, ['queued', 'running']))).map((r) => r.storeId),
+    (
+      await db
+        .select({ storeId: schema.scans.storeId })
+        .from(schema.scans)
+        .where(inArray(schema.scans.status, ['queued', 'running']))
+    ).map((r) => r.storeId),
   );
   let n = 0;
   for (const { s, a } of rows) {
@@ -68,8 +80,14 @@ export async function enqueueDailyScans(d1: D1Database, now = Date.now(), stagge
 
 export async function cleanup(d1: D1Database, captures: R2Bucket | undefined, now = Date.now()) {
   const db = getDb(d1);
-  const anon = await db.delete(schema.scans).where(and(eq(schema.scans.trigger, 'anonymous'), lt(schema.scans.createdAt, now - ANON_RETENTION_MS))).returning({ id: schema.scans.id });
-  const old = await db.delete(schema.scans).where(lt(schema.scans.createdAt, now - ACCOUNT_SCAN_RETENTION_MS)).returning({ id: schema.scans.id });
+  const anon = await db
+    .delete(schema.scans)
+    .where(and(eq(schema.scans.trigger, 'anonymous'), lt(schema.scans.createdAt, now - ANON_RETENTION_MS)))
+    .returning({ id: schema.scans.id });
+  const old = await db
+    .delete(schema.scans)
+    .where(lt(schema.scans.createdAt, now - ACCOUNT_SCAN_RETENTION_MS))
+    .returning({ id: schema.scans.id });
   await db.delete(schema.loginTokens).where(lt(schema.loginTokens.expiresAt, now - 24 * 60 * 60 * 1000));
   await db.delete(schema.sessions).where(lt(schema.sessions.expiresAt, now));
   await db.delete(schema.rateLimits).where(lt(schema.rateLimits.windowStart, now - 2 * 24 * 60 * 60 * 1000));
@@ -78,7 +96,9 @@ export async function cleanup(d1: D1Database, captures: R2Bucket | undefined, no
     let cursor: string | undefined;
     do {
       const list = await captures.list({ prefix: 'captures/', cursor, limit: 500 });
-      const stale = list.objects.filter((o) => o.uploaded.getTime() < now - CAPTURE_RETENTION_MS).map((o) => o.key);
+      const stale = list.objects
+        .filter((o) => o.uploaded.getTime() < now - CAPTURE_RETENTION_MS)
+        .map((o) => o.key);
       if (stale.length) {
         await captures.delete(stale);
         capturesDeleted += stale.length;
@@ -89,7 +109,12 @@ export async function cleanup(d1: D1Database, captures: R2Bucket | undefined, no
   return { anonymousScans: anon.length, oldScans: old.length, capturesDeleted };
 }
 
-export async function weeklyDigest(d1: D1Database, email: EmailProvider, appUrl: string, now = Date.now()): Promise<number> {
+export async function weeklyDigest(
+  d1: D1Database,
+  email: EmailProvider,
+  appUrl: string,
+  now = Date.now(),
+): Promise<number> {
   const db = getDb(d1);
   const accounts = await db.select().from(schema.accounts);
   let sent = 0;
@@ -106,18 +131,41 @@ export async function weeklyDigest(d1: D1Database, email: EmailProvider, appUrl:
     if (!owner[0]) continue;
     const digest = [];
     for (const s of stores) {
-      const recent = await db.select().from(schema.scans).where(and(eq(schema.scans.storeId, s.id), eq(schema.scans.status, 'done'))).orderBy(desc(schema.scans.finishedAt)).limit(8);
+      const recent = await db
+        .select()
+        .from(schema.scans)
+        .where(and(eq(schema.scans.storeId, s.id), eq(schema.scans.status, 'done')))
+        .orderBy(desc(schema.scans.finishedAt))
+        .limit(8);
       const latest = recent[0];
       const weekAgo = recent.find((x) => (x.finishedAt ?? 0) <= now - 6 * 24 * 60 * 60 * 1000);
       let topFixes: string[] = [];
       if (latest) {
-        const failing = await db.select().from(schema.checkResults).where(and(eq(schema.checkResults.scanId, latest.id), inArray(schema.checkResults.status, ['fail', 'error', 'warn'])));
+        const failing = await db
+          .select()
+          .from(schema.checkResults)
+          .where(
+            and(
+              eq(schema.checkResults.scanId, latest.id),
+              inArray(schema.checkResults.status, ['fail', 'error', 'warn']),
+            ),
+          );
         topFixes = failing
-          .sort((x, y) => SEVERITY_WEIGHTS[y.severity as Severity] - SEVERITY_WEIGHTS[x.severity as Severity] || (x.status === 'warn' ? 1 : 0) - (y.status === 'warn' ? 1 : 0))
+          .sort(
+            (x, y) =>
+              SEVERITY_WEIGHTS[y.severity as Severity] - SEVERITY_WEIGHTS[x.severity as Severity] ||
+              (x.status === 'warn' ? 1 : 0) - (y.status === 'warn' ? 1 : 0),
+          )
           .slice(0, 3)
           .map((r) => `${CHECKS_BY_ID.get(r.checkId)?.title ?? r.checkId}: ${appUrl}/fix/${r.fixGuide}`);
       }
-      digest.push({ name: s.name, domain: s.domain, score: latest?.score ?? null, change: latest && weekAgo ? (latest.score ?? 0) - (weekAgo.score ?? 0) : null, topFixes });
+      digest.push({
+        name: s.name,
+        domain: s.domain,
+        score: latest?.score ?? null,
+        change: latest && weekAgo ? (latest.score ?? 0) - (weekAgo.score ?? 0) : null,
+        topFixes,
+      });
     }
     const r = await email.send(digestEmail(owner[0].email, a.name, digest, appUrl));
     if (r.ok) sent++;
@@ -139,9 +187,11 @@ export async function runCron(cron: string, deps: CronDeps): Promise<string> {
   let result: string;
   try {
     if (cron === CRONS.runner) result = `processed ${await drainJobs(deps.runner, 5, 25_000)} jobs`;
-    else if (cron === CRONS.daily) result = `enqueued ${await enqueueDailyScans(d1, Date.now(), deps.staggerDaily ?? true)} scans`;
+    else if (cron === CRONS.daily)
+      result = `enqueued ${await enqueueDailyScans(d1, Date.now(), deps.staggerDaily ?? true)} scans`;
     else if (cron === CRONS.cleanup) result = JSON.stringify(await cleanup(d1, deps.captures));
-    else if (cron === CRONS.digest) result = `sent ${await weeklyDigest(d1, deps.email, deps.appUrl)} digests`;
+    else if (cron === CRONS.digest)
+      result = `sent ${await weeklyDigest(d1, deps.email, deps.appUrl)} digests`;
     else result = `unknown cron ${cron}`;
   } catch (e) {
     result = `error: ${String((e as Error)?.message ?? e)}`;

@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { gradeFor, scoreCategory, scoreScan, type ScorableResult } from '../src/scan/scoring';
 
-const r = (category: ScorableResult['category'], severity: ScorableResult['severity'], status: ScorableResult['status'], checkId?: string) => ({ category, severity, status, checkId });
+const r = (
+  category: ScorableResult['category'],
+  severity: ScorableResult['severity'],
+  status: ScorableResult['status'],
+  checkId?: string,
+) => ({ category, severity, status, checkId });
 
 describe('scoring', () => {
   it.each([
@@ -21,7 +26,10 @@ describe('scoring', () => {
 
   it('renormalises over applicable categories', () => {
     // discovery 100 (w30), products 0 (w25), catalog excluded → 30*100/55 = 54.5 → 55
-    const s = scoreScan([r('discovery', 'high', 'pass'), r('products', 'high', 'fail'), r('catalog', 'high', 'skip')], { includeCheckout: false });
+    const s = scoreScan(
+      [r('discovery', 'high', 'pass'), r('products', 'high', 'fail'), r('catalog', 'high', 'skip')],
+      { includeCheckout: false },
+    );
     expect(s.score).toBe(55);
     expect(s.categories.find((c) => c.category === 'catalog')!.score).toBeNull();
   });
@@ -33,18 +41,40 @@ describe('scoring', () => {
   });
 
   it('caps the score when a critical discovery check fails', () => {
-    const s = scoreScan([r('discovery', 'critical', 'fail', 'discovery.profile_reachable'), r('products', 'high', 'pass'), r('basics', 'low', 'pass')], { includeCheckout: false });
+    const s = scoreScan(
+      [
+        r('discovery', 'critical', 'fail', 'discovery.profile_reachable'),
+        r('products', 'high', 'pass'),
+        r('basics', 'low', 'pass'),
+      ],
+      { includeCheckout: false },
+    );
     expect(s.score).toBe(39);
     expect(s.cappedBy).toBe('discovery.profile_reachable');
   });
 
   it('caps at 89 when any other critical check fails', () => {
-    const s = scoreScan([r('discovery', 'high', 'pass'), r('discovery', 'high', 'pass'), r('consistency', 'critical', 'fail', 'consistency.price_match'), r('consistency', 'high', 'pass'), r('consistency', 'high', 'pass'), r('products', 'high', 'pass'), r('basics', 'high', 'pass')], { includeCheckout: false });
+    const s = scoreScan(
+      [
+        r('discovery', 'high', 'pass'),
+        r('discovery', 'high', 'pass'),
+        r('consistency', 'critical', 'fail', 'consistency.price_match'),
+        r('consistency', 'high', 'pass'),
+        r('consistency', 'high', 'pass'),
+        r('products', 'high', 'pass'),
+        r('basics', 'high', 'pass'),
+      ],
+      { includeCheckout: false },
+    );
     expect(s.score).toBe(89);
     expect(s.grade).toBe('Mostly ready');
     expect(s.cappedBy).toBe('consistency.price_match');
     // Unscored checkout failures do not cap.
-    expect(scoreScan([r('discovery', 'high', 'pass'), r('checkout', 'critical', 'fail')], { includeCheckout: false }).score).toBe(100);
+    expect(
+      scoreScan([r('discovery', 'high', 'pass'), r('checkout', 'critical', 'fail')], {
+        includeCheckout: false,
+      }).score,
+    ).toBe(100);
   });
 
   it('nothing applicable → 0', () => {

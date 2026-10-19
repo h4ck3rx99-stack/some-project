@@ -6,7 +6,16 @@ export function emailChannel(provider: EmailProvider): AlertChannel {
   return {
     type: 'email',
     async send(to, p) {
-      return provider.send(alertEmail({ to, storeName: p.storeName, domain: p.domain, score: p.score, reportUrl: p.reportUrl, events: p.events }));
+      return provider.send(
+        alertEmail({
+          to,
+          storeName: p.storeName,
+          domain: p.domain,
+          score: p.score,
+          reportUrl: p.reportUrl,
+          events: p.events,
+        }),
+      );
     },
   };
 }

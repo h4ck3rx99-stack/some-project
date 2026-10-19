@@ -1,7 +1,11 @@
 import type { EmailProvider } from './provider';
 
 /** Resend-compatible HTTP API (POST /emails). */
-export function resendEmail(apiKey: string, from: string, endpoint = 'https://api.resend.com/emails'): EmailProvider {
+export function resendEmail(
+  apiKey: string,
+  from: string,
+  endpoint = 'https://api.resend.com/emails',
+): EmailProvider {
   return {
     name: 'resend',
     async send(msg) {

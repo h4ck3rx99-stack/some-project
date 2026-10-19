@@ -8,7 +8,9 @@ export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
   email: text('email').notNull().unique(),
   name: text('name'),
-  role: text('role', { enum: ['user', 'admin'] }).notNull().default('user'),
+  role: text('role', { enum: ['user', 'admin'] })
+    .notNull()
+    .default('user'),
   createdAt: integer('created_at').notNull(),
 });
 
@@ -32,7 +34,9 @@ export const sessions = sqliteTable(
   'sessions',
   {
     id: text('id').primaryKey(),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     tokenHash: text('token_hash').notNull().unique(),
     csrfSecret: text('csrf_secret').notNull(),
     expiresAt: integer('expires_at').notNull(),
@@ -45,8 +49,12 @@ export const sessions = sqliteTable(
 export const accounts = sqliteTable('accounts', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  plan: text('plan', { enum: ['free', 'store', 'agency', 'vendor'] }).notNull().default('free'),
-  status: text('status', { enum: ['active', 'past_due', 'cancelled', 'trialing'] }).notNull().default('active'),
+  plan: text('plan', { enum: ['free', 'store', 'agency', 'vendor'] })
+    .notNull()
+    .default('free'),
+  status: text('status', { enum: ['active', 'past_due', 'cancelled', 'trialing'] })
+    .notNull()
+    .default('active'),
   currentPeriodEnd: integer('current_period_end'),
   billingProvider: text('billing_provider'),
   providerCustomerId: text('provider_customer_id'),
@@ -60,9 +68,15 @@ export const accounts = sqliteTable('accounts', {
 export const accountMembers = sqliteTable(
   'account_members',
   {
-    accountId: text('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    role: text('role', { enum: ['owner', 'member'] }).notNull().default('owner'),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role', { enum: ['owner', 'member'] })
+      .notNull()
+      .default('owner'),
   },
   (t) => [primaryKey({ columns: [t.accountId, t.userId] }), index('account_members_user_idx').on(t.userId)],
 );
@@ -71,7 +85,9 @@ export const stores = sqliteTable(
   'stores',
   {
     id: text('id').primaryKey(),
-    accountId: text('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
     url: text('url').notNull(),
     domain: text('domain').notNull(),
     name: text('name').notNull(),
@@ -86,7 +102,10 @@ export const stores = sqliteTable(
     lastManualScanAt: integer('last_manual_scan_at'),
     createdAt: integer('created_at').notNull(),
   },
-  (t) => [uniqueIndex('stores_account_domain_uq').on(t.accountId, t.domain), index('stores_account_idx').on(t.accountId)],
+  (t) => [
+    uniqueIndex('stores_account_domain_uq').on(t.accountId, t.domain),
+    index('stores_account_idx').on(t.accountId),
+  ],
 );
 
 export const scans = sqliteTable(
@@ -99,7 +118,9 @@ export const scans = sqliteTable(
     url: text('url').notNull(),
     trigger: text('trigger', { enum: ['anonymous', 'manual', 'scheduled', 'api'] }).notNull(),
     requesterIpHash: text('requester_ip_hash'),
-    status: text('status', { enum: ['queued', 'running', 'done', 'failed'] }).notNull().default('queued'),
+    status: text('status', { enum: ['queued', 'running', 'done', 'failed'] })
+      .notNull()
+      .default('queued'),
     phase: text('phase').notNull().default('discovery'),
     score: integer('score'),
     grade: text('grade'),
@@ -127,7 +148,9 @@ export const checkResults = sqliteTable(
   'check_results',
   {
     id: text('id').primaryKey(),
-    scanId: text('scan_id').notNull().references(() => scans.id, { onDelete: 'cascade' }),
+    scanId: text('scan_id')
+      .notNull()
+      .references(() => scans.id, { onDelete: 'cascade' }),
     checkId: text('check_id').notNull(),
     category: text('category').notNull(),
     severity: text('severity').notNull(),
@@ -145,7 +168,10 @@ export const scanJobs = sqliteTable(
   'scan_jobs',
   {
     id: text('id').primaryKey(),
-    scanId: text('scan_id').notNull().unique().references(() => scans.id, { onDelete: 'cascade' }),
+    scanId: text('scan_id')
+      .notNull()
+      .unique()
+      .references(() => scans.id, { onDelete: 'cascade' }),
     phase: text('phase').notNull(),
     inputJson: text('input_json').notNull(),
     stateJson: text('state_json').notNull(),
@@ -164,7 +190,9 @@ export const alertChannels = sqliteTable(
   'alert_channels',
   {
     id: text('id').primaryKey(),
-    accountId: text('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
     type: text('type', { enum: ['email', 'webhook', 'slack'] }).notNull(),
     targetEncrypted: text('target_encrypted').notNull(),
     label: text('label').notNull(),
@@ -178,7 +206,9 @@ export const alerts = sqliteTable(
   'alerts',
   {
     id: text('id').primaryKey(),
-    accountId: text('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
     storeId: text('store_id').references(() => stores.id, { onDelete: 'cascade' }),
     scanId: text('scan_id').references(() => scans.id, { onDelete: 'set null' }),
     kind: text('kind').notNull(),
@@ -188,14 +218,20 @@ export const alerts = sqliteTable(
     error: text('error'),
     sentAt: integer('sent_at').notNull(),
   },
-  (t) => [index('alerts_account_sent_idx').on(t.accountId, t.sentAt), index('alerts_store_idx').on(t.storeId), index('alerts_scan_idx').on(t.scanId)],
+  (t) => [
+    index('alerts_account_sent_idx').on(t.accountId, t.sentAt),
+    index('alerts_store_idx').on(t.storeId),
+    index('alerts_scan_idx').on(t.scanId),
+  ],
 );
 
 export const apiKeys = sqliteTable(
   'api_keys',
   {
     id: text('id').primaryKey(),
-    accountId: text('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
     keyHash: text('key_hash').notNull().unique(),
     prefix: text('prefix').notNull().unique(),
     label: text('label').notNull(),

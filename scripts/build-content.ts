@@ -10,7 +10,9 @@ import './build-fixtures.ts';
 
 const DIR = 'content/fix';
 const out: Record<string, { title: string; html: string; markdown: string }> = {};
-for (const f of readdirSync(DIR).filter((x) => x.endsWith('.md')).sort()) {
+for (const f of readdirSync(DIR)
+  .filter((x) => x.endsWith('.md'))
+  .sort()) {
   const md = readFileSync(join(DIR, f), 'utf8');
   const title = /^#\s+(.+)$/m.exec(md)?.[1]?.trim() ?? f;
   const body = md.replace(/^#\s+.+\n/, '');

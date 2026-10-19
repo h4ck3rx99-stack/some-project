@@ -21,14 +21,23 @@ export interface CategoryScoreView {
 export function parseCategories(scan: ScanRow): { categories: CategoryScoreView[]; cappedBy: string | null } {
   if (!scan.categoryScoresJson) return { categories: [], cappedBy: null };
   try {
-    const j = JSON.parse(scan.categoryScoresJson) as { categories: CategoryScoreView[]; cappedBy: string | null };
+    const j = JSON.parse(scan.categoryScoresJson) as {
+      categories: CategoryScoreView[];
+      cappedBy: string | null;
+    };
     return { categories: j.categories ?? [], cappedBy: j.cappedBy ?? null };
   } catch {
     return { categories: [], cappedBy: null };
   }
 }
 
-const STATUS_TEXT: Record<CheckStatus, string> = { pass: 'Passed', warn: 'Warning', fail: 'Failed', skip: 'Skipped', error: 'Error' };
+const STATUS_TEXT: Record<CheckStatus, string> = {
+  pass: 'Passed',
+  warn: 'Warning',
+  fail: 'Failed',
+  skip: 'Skipped',
+  error: 'Error',
+};
 const STATUS_ICON: Record<CheckStatus, string> = { pass: '✓', warn: '!', fail: '✕', skip: '–', error: '✕' };
 
 export function StatusChip(p: { status: CheckStatus }) {
@@ -47,7 +56,14 @@ export function ScoreDial(p: { score: number | null; grade: string | null; size?
   const v = Math.max(0, Math.min(100, p.score ?? 0));
   const color = v >= 90 ? 'var(--pass)' : v >= 70 ? 'var(--accent)' : v >= 40 ? 'var(--warn)' : 'var(--fail)';
   return (
-    <svg class="dial" width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`Readiness score ${p.score ?? 'not available'} out of 100${p.grade ? `, ${p.grade}` : ''}`}>
+    <svg
+      class="dial"
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      role="img"
+      aria-label={`Readiness score ${p.score ?? 'not available'} out of 100${p.grade ? `, ${p.grade}` : ''}`}
+    >
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line)" stroke-width="10" />
       <circle
         cx={size / 2}
@@ -60,7 +76,14 @@ export function ScoreDial(p: { score: number | null; grade: string | null; size?
         stroke-dasharray={`${((v / 100) * c).toFixed(1)} ${c.toFixed(1)}`}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
       />
-      <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size={size / 3.6} font-weight="700">
+      <text
+        x="50%"
+        y="50%"
+        text-anchor="middle"
+        dominant-baseline="central"
+        font-size={size / 3.6}
+        font-weight="700"
+      >
         {p.score ?? '–'}
       </text>
     </svg>
@@ -76,7 +99,11 @@ export function CategoryBars(p: { categories: CategoryScoreView[] }) {
         return (
           <div class="bar">
             <span>{CATEGORY_LABELS[cat]}</span>
-            <div class="track" role="img" aria-label={`${CATEGORY_LABELS[cat]}: ${score === null ? 'not scored' : `${Math.round(score)} of 100`}`}>
+            <div
+              class="track"
+              role="img"
+              aria-label={`${CATEGORY_LABELS[cat]}: ${score === null ? 'not scored' : `${Math.round(score)} of 100`}`}
+            >
               <div class="fill" style={`width:${score ?? 0}%`} />
             </div>
             <span class="small">{score === null ? 'n/a' : Math.round(score)}</span>
@@ -91,9 +118,21 @@ export function Sparkline(p: { values: number[]; width?: number; height?: number
   const w = p.width ?? 90;
   const h = p.height ?? 24;
   if (p.values.length < 2) return <span class="muted small">–</span>;
-  const pts = p.values.map((v, i) => `${((i / (p.values.length - 1)) * (w - 4) + 2).toFixed(1)},${(h - 2 - (v / 100) * (h - 4)).toFixed(1)}`).join(' ');
+  const pts = p.values
+    .map(
+      (v, i) =>
+        `${((i / (p.values.length - 1)) * (w - 4) + 2).toFixed(1)},${(h - 2 - (v / 100) * (h - 4)).toFixed(1)}`,
+    )
+    .join(' ');
   return (
-    <svg class="spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`Score trend: ${p.values.join(', ')}`}>
+    <svg
+      class="spark"
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      role="img"
+      aria-label={`Score trend: ${p.values.join(', ')}`}
+    >
       <polyline points={pts} />
     </svg>
   );
@@ -109,7 +148,13 @@ export function HistoryChart(p: { points: { t: number; score: number }[] }) {
   const x = (t: number) => pad + ((t - t0) / Math.max(1, t1 - t0)) * (w - pad * 2);
   const y = (s: number) => h - pad - (s / 100) * (h - pad * 2);
   return (
-    <svg class="chart" viewBox={`0 0 ${w} ${h}`} width="100%" role="img" aria-label={`Score history: ${p.points.map((q) => q.score).join(', ')}`}>
+    <svg
+      class="chart"
+      viewBox={`0 0 ${w} ${h}`}
+      width="100%"
+      role="img"
+      aria-label={`Score history: ${p.points.map((q) => q.score).join(', ')}`}
+    >
       <g class="grid">
         {[0, 50, 100].map((s) => (
           <>
@@ -175,7 +220,11 @@ function Evidence(p: { r: CheckRecord }) {
   );
 }
 
-export function CheckList(p: { results: CheckRecord[]; categories: CategoryScoreView[]; fixLinks?: boolean }) {
+export function CheckList(p: {
+  results: CheckRecord[];
+  categories: CategoryScoreView[];
+  fixLinks?: boolean;
+}) {
   return (
     <>
       {CATEGORIES.map((cat) => {
@@ -186,11 +235,26 @@ export function CheckList(p: { results: CheckRecord[]; categories: CategoryScore
         return (
           <section class="card">
             <h2 style="margin-top:0">
-              {CATEGORY_LABELS[cat]} <span class="muted small">{c?.score === null || c?.score === undefined ? (notOffered ? '· not offered' : '· not scored') : `· ${Math.round(c.score)}/100`}</span>
+              {CATEGORY_LABELS[cat]}{' '}
+              <span class="muted small">
+                {c?.score === null || c?.score === undefined
+                  ? notOffered
+                    ? '· not offered'
+                    : '· not scored'
+                  : `· ${Math.round(c.score)}/100`}
+              </span>
             </h2>
-            {notOffered ? <p class="muted">Your profile does not offer this capability, so it is excluded from the score. Consider enabling it so agents can use it.</p> : null}
+            {notOffered ? (
+              <p class="muted">
+                Your profile does not offer this capability, so it is excluded from the score. Consider
+                enabling it so agents can use it.
+              </p>
+            ) : null}
             {cat === 'checkout' && c?.score === null && !notOffered ? (
-              <p class="muted small">Checkout is not scored until the store owner verifies ownership and configures a test-mode endpoint.</p>
+              <p class="muted small">
+                Checkout is not scored until the store owner verifies ownership and configures a test-mode
+                endpoint.
+              </p>
             ) : null}
             <ul class="checks">
               {rs.map((r) => {
@@ -203,7 +267,11 @@ export function CheckList(p: { results: CheckRecord[]; categories: CategoryScore
                       <span class="muted small">{r.severity}</span>
                     </div>
                     <p style="margin:4px 0 0">{r.summary}</p>
-                    {(r.status === 'fail' || r.status === 'warn' || r.status === 'error') && def ? <p class="muted small" style="margin:4px 0 0">Why it matters: {def.why}</p> : null}
+                    {(r.status === 'fail' || r.status === 'warn' || r.status === 'error') && def ? (
+                      <p class="muted small" style="margin:4px 0 0">
+                        Why it matters: {def.why}
+                      </p>
+                    ) : null}
                     <Evidence r={r} />
                     {p.fixLinks !== false && r.status !== 'pass' && r.status !== 'skip' ? (
                       <p class="small" style="margin:6px 0 0">
@@ -230,7 +298,10 @@ export function ReportHeader(p: { scan: ScanRow; label?: string }) {
         Store: <b>{s.domain}</b>
       </span>
       <span>
-        Scanned: <time datetime={new Date(t).toISOString()}>{new Date(t).toISOString().replace('T', ' ').slice(0, 16)} UTC</time>
+        Scanned:{' '}
+        <time datetime={new Date(t).toISOString()}>
+          {new Date(t).toISOString().replace('T', ' ').slice(0, 16)} UTC
+        </time>
       </span>
       <span>
         UCP version seen: <b>{s.specVersionSeen ?? 'none'}</b> (latest {LATEST_VERSION})

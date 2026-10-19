@@ -31,7 +31,12 @@ export function describeFetch(f: FetchSummary | undefined): string {
   return `HTTP ${f.status}${f.contentType ? `, ${f.contentType}` : ''}, ${f.ttfbMs} ms to first byte`;
 }
 
-export function result(status: CheckStatus, summary: string, evidence: Evidence[] = [], meta?: Record<string, unknown>): CheckResult {
+export function result(
+  status: CheckStatus,
+  summary: string,
+  evidence: Evidence[] = [],
+  meta?: Record<string, unknown>,
+): CheckResult {
   return { status, summary, evidence, ...(meta ? { meta } : {}) };
 }
 
@@ -56,7 +61,11 @@ export function isObj(v: unknown): v is Record<string, unknown> {
 }
 
 /** Visit every value in a JSON document with its path. Bounded to protect CPU on hostile input. */
-export function walkJson(v: unknown, visit: (value: unknown, path: string, key: string) => void, limit = 50_000): void {
+export function walkJson(
+  v: unknown,
+  visit: (value: unknown, path: string, key: string) => void,
+  limit = 50_000,
+): void {
   let budget = limit;
   const go = (x: unknown, path: string, key: string): void => {
     if (budget-- <= 0) return;

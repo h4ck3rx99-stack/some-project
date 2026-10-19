@@ -109,7 +109,12 @@ export const API_LIMITS = { scansPerHourPerAccount: 60, maxWaitSeconds: 25, maxS
  * Effective plan for an account: a paid plan only counts while active/trialing (or past_due within
  * its period). Anything else falls back to free limits.
  */
-export function effectivePlan(plan: string, status: string, periodEnd: number | null, now = Date.now()): Plan {
+export function effectivePlan(
+  plan: string,
+  status: string,
+  periodEnd: number | null,
+  now = Date.now(),
+): Plan {
   const p = PLANS[(plan in PLANS ? plan : 'free') as PlanId];
   if (p.id === 'free') return p;
   const inPeriod = periodEnd === null || periodEnd > now;

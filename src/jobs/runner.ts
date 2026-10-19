@@ -59,7 +59,12 @@ export async function dueJobs(deps: RunnerDeps, limit: number): Promise<string[]
   const rows = await db
     .select({ id: schema.scanJobs.id })
     .from(schema.scanJobs)
-    .where(and(lte(schema.scanJobs.runAfter, now), or(isNull(schema.scanJobs.lockedUntil), lt(schema.scanJobs.lockedUntil, now))))
+    .where(
+      and(
+        lte(schema.scanJobs.runAfter, now),
+        or(isNull(schema.scanJobs.lockedUntil), lt(schema.scanJobs.lockedUntil, now)),
+      ),
+    )
     .orderBy(asc(schema.scanJobs.runAfter))
     .limit(limit);
   return rows.map((r) => r.id);
@@ -67,12 +72,27 @@ export async function dueJobs(deps: RunnerDeps, limit: number): Promise<string[]
 
 function nextAfterFailure(phase: Phase): Phase {
   if (phase.startsWith('products:')) return 'consistency';
-  const order: Phase[] = ['discovery', 'catalog', 'products:0', 'consistency', 'basics', 'checkout', 'finalize', 'done'];
+  const order: Phase[] = [
+    'discovery',
+    'catalog',
+    'products:0',
+    'consistency',
+    'basics',
+    'checkout',
+    'finalize',
+    'done',
+  ];
   return order[order.indexOf(phase) + 1] ?? 'done';
 }
 
 /** Persist under the lease; returns false if the lease was lost (another runner took over). */
-async function persist(deps: RunnerDeps, lease: Lease, phase: Phase, state: ScanState, extra: { attempts?: number; lastError?: string | null; release?: boolean; runAfter?: number } = {}) {
+async function persist(
+  deps: RunnerDeps,
+  lease: Lease,
+  phase: Phase,
+  state: ScanState,
+  extra: { attempts?: number; lastError?: string | null; release?: boolean; runAfter?: number } = {},
+) {
   const now = (deps.now ?? Date.now)();
   const sets = ['phase = ?1', 'state_json = ?2', 'updated_at = ?3'];
   const binds: unknown[] = [phase, JSON.stringify(state), now];
@@ -94,7 +114,12 @@ async function persist(deps: RunnerDeps, lease: Lease, phase: Phase, state: Scan
     sets.push(`locked_until = ?${binds.length}`);
   }
   binds.push(lease.jobId, lease.leaseId);
-  const res = await deps.d1.prepare(`UPDATE scan_jobs SET ${sets.join(', ')} WHERE id = ?${binds.length - 1} AND lease_id = ?${binds.length}`).bind(...binds).run();
+  const res = await deps.d1
+    .prepare(
+      `UPDATE scan_jobs SET ${sets.join(', ')} WHERE id = ?${binds.length - 1} AND lease_id = ?${binds.length}`,
+    )
+    .bind(...binds)
+    .run();
   return res.meta.changes === 1;
 }
 
@@ -102,7 +127,11 @@ async function persist(deps: RunnerDeps, lease: Lease, phase: Phase, state: Scan
  * Advance a leased job through as many phases as fit in `budgetMs`.
  * Returns the phase it stopped at ('done' when the scan finished).
  */
-export async function advanceJob(deps: RunnerDeps, lease: Lease, budgetMs = DEFAULT_BUDGET_MS): Promise<Phase> {
+export async function advanceJob(
+  deps: RunnerDeps,
+  lease: Lease,
+  budgetMs = DEFAULT_BUDGET_MS,
+): Promise<Phase> {
   const now = deps.now ?? Date.now;
   const started = now();
   const db = getDb(deps.d1);
@@ -113,11 +142,16 @@ export async function advanceJob(deps: RunnerDeps, lease: Lease, budgetMs = DEFA
   let phase = job.phase as Phase;
   let attempts = job.attempts;
 
-  await db.update(schema.scans).set({ status: 'running', phase, startedAt: job.createdAt }).where(and(eq(schema.scans.id, job.scanId), eq(schema.scans.status, 'queued')));
+  await db
+    .update(schema.scans)
+    .set({ status: 'running', phase, startedAt: job.createdAt })
+    .where(and(eq(schema.scans.id, job.scanId), eq(schema.scans.status, 'queued')));
 
   const capture = deps.captures
     ? async (name: string, body: string) => {
-        await deps.captures!.put(`captures/${job.scanId}/${name}`, body.slice(0, 1_000_000), { customMetadata: { createdAt: String(now()) } });
+        await deps.captures!.put(`captures/${job.scanId}/${name}`, body.slice(0, 1_000_000), {
+          customMetadata: { createdAt: String(now()) },
+        });
       }
     : undefined;
 
@@ -157,9 +191,19 @@ export async function advanceJob(deps: RunnerDeps, lease: Lease, budgetMs = DEFA
       if (!(await persist(deps, lease, phase, state, { attempts: 1, lastError: null }))) return phase;
     } catch (e) {
       const message = String((e as Error)?.stack ?? e).slice(0, 1000);
-      log.error({ msg: 'scan phase failed', scan_id: job.scanId, job_id: lease.jobId, phase, error: message });
+      log.error({
+        msg: 'scan phase failed',
+        scan_id: job.scanId,
+        job_id: lease.jobId,
+        phase,
+        error: message,
+      });
       // Release with backoff; the next claim increments attempts.
-      await persist(deps, lease, phase, state, { lastError: message, release: true, runAfter: now() + 5_000 * attempts });
+      await persist(deps, lease, phase, state, {
+        lastError: message,
+        release: true,
+        runAfter: now() + 5_000 * attempts,
+      });
       return phase;
     }
   }
@@ -183,7 +227,11 @@ export async function drainJobs(deps: RunnerDeps, max = 5, budgetMs = 25_000): P
 }
 
 /** Advance the job of one scan if it is free (used by POST /scan and status polling). */
-export async function kickScan(deps: RunnerDeps, scanId: string, budgetMs = DEFAULT_BUDGET_MS): Promise<void> {
+export async function kickScan(
+  deps: RunnerDeps,
+  scanId: string,
+  budgetMs = DEFAULT_BUDGET_MS,
+): Promise<void> {
   const job = await getDb(deps.d1).query.scanJobs.findFirst({ where: eq(schema.scanJobs.scanId, scanId) });
   if (!job) return;
   const lease = await claimJob(deps, job.id);

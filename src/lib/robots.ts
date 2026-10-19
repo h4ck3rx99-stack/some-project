@@ -57,7 +57,10 @@ export function parseRobots(text: string): ParsedRobots {
 }
 
 /** Select the rules that apply to `userAgent` (product token, e.g. "CartProbeBot"). */
-export function rulesFor(robots: ParsedRobots, userAgent: string): { rules: RobotsRule[]; agent: string | null } {
+export function rulesFor(
+  robots: ParsedRobots,
+  userAgent: string,
+): { rules: RobotsRule[]; agent: string | null } {
   const ua = userAgent.toLowerCase();
   let best = '';
   for (const g of robots.groups) {

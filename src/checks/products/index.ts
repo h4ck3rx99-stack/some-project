@@ -22,7 +22,14 @@ export function parseSitemapLocs(xml: string, limit = 50_000): string[] {
   const re = /<loc>\s*(?:<!\[CDATA\[)?\s*([^<\]]+?)\s*(?:\]\]>)?\s*<\/loc>/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(xml)) && out.length < limit) {
-    out.push(m[1]!.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'"));
+    out.push(
+      m[1]!
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'"),
+    );
   }
   return out;
 }
@@ -51,8 +58,11 @@ async function fetchRobots(ctx: ScanContext) {
 async function discoverProductUrls(ctx: ScanContext): Promise<void> {
   await fetchRobots(ctx);
   const robots = parseRobots(ctx.state.robots?.text ?? '');
-  const sm = { tried: [] as string[], found: [] as string[], productSitemap: undefined as string | undefined };
-
+  const sm = {
+    tried: [] as string[],
+    found: [] as string[],
+    productSitemap: undefined as string | undefined,
+  };
 
   const fromCatalog = (ctx.state.catalog?.products ?? [])
     .flatMap((p) => [p.url, ...p.variants.map((v) => v.url)])
@@ -62,7 +72,11 @@ async function discoverProductUrls(ctx: ScanContext): Promise<void> {
   const fetchXml = async (u: string): Promise<string | null> => {
     if (sm.tried.includes(u) || sm.tried.length >= 8) return null;
     sm.tried.push(u);
-    const r = await ctx.http.fetch(u, { accept: 'application/xml, text/xml', maxBytes: 5_000_000, timeoutMs: 8000 });
+    const r = await ctx.http.fetch(u, {
+      accept: 'application/xml, text/xml',
+      maxBytes: 5_000_000,
+      timeoutMs: 8000,
+    });
     if (!r.ok || !r.bodyText || !/<(urlset|sitemapindex)[\s>]/i.test(r.bodyText)) return null;
     sm.found.push(u);
     return r.bodyText;
@@ -124,12 +138,24 @@ async function discoverProductUrls(ctx: ScanContext): Promise<void> {
   ctx.state.productPages = [];
 }
 
-export async function extractProductPage(url: string, status: number, html: string | undefined, error?: string): Promise<ProductPage> {
+export async function extractProductPage(
+  url: string,
+  status: number,
+  html: string | undefined,
+  error?: string,
+): Promise<ProductPage> {
   if (!html) return { url, status, error, products: [], jsonLdBlocks: 0, jsonLdErrors: 0 };
   const ex = await extractHtml(html);
   const { nodes, errors } = parseJsonLdBlocks(ex.jsonLd);
   const { products } = findProducts(nodes);
-  return { url, status, error, products: products.slice(0, 5), jsonLdBlocks: ex.jsonLd.length, jsonLdErrors: errors };
+  return {
+    url,
+    status,
+    error,
+    products: products.slice(0, 5),
+    jsonLdBlocks: ex.jsonLd.length,
+    jsonLdErrors: errors,
+  };
 }
 
 /** Run one products:<offset> phase. Returns the next offset, or null when sampling is complete. */
@@ -140,7 +166,12 @@ export async function prepareProducts(ctx: ScanContext, offset: number): Promise
   for (const url of chunk) {
     const r = await ctx.http.fetch(url, { accept: 'text/html', maxBytes: 2_000_000, timeoutMs: 8000 });
     const html = r.ok && /html/i.test(r.contentType ?? 'text/html') ? r.bodyText : undefined;
-    const page = await extractProductPage(url, r.status, html, r.error ? `${r.error.kind}: ${r.error.message}` : !r.ok ? `HTTP ${r.status}` : undefined);
+    const page = await extractProductPage(
+      url,
+      r.status,
+      html,
+      r.error ? `${r.error.kind}: ${r.error.message}` : !r.ok ? `HTTP ${r.status}` : undefined,
+    );
     ctx.state.productPages!.push(page);
   }
   const next = offset + PRODUCT_CHUNK;
@@ -161,7 +192,11 @@ function pagesWithProduct(ctx: ScanContext): Fetched[] {
 function noSample(ctx: ScanContext) {
   if (fetchedPages(ctx).length === 0) {
     const tried = ctx.state.sampled?.length ?? 0;
-    return skip(tried ? `None of the ${tried} sampled product pages could be fetched.` : 'We could not find product pages to sample (no catalog URLs or product sitemap).');
+    return skip(
+      tried
+        ? `None of the ${tried} sampled product pages could be fetched.`
+        : 'We could not find product pages to sample (no catalog URLs or product sitemap).',
+    );
   }
   return null;
 }
@@ -185,11 +220,19 @@ function ratioCheck(
   const ok = pages.length - failures.length;
   const status = ratioStatus(ok, pages.length);
   const share = pct(ok, pages.length);
-  const ev = failures.slice(0, 10).map((f) => ({ label: 'Product page', url: f.url, found: truncate(f.missing, 300) }));
-  return result(status, status === 'pass' ? okSummary(share, pages.length) : badSummary(share, pages.length), ev, { ok, total: pages.length });
+  const ev = failures
+    .slice(0, 10)
+    .map((f) => ({ label: 'Product page', url: f.url, found: truncate(f.missing, 300) }));
+  return result(
+    status,
+    status === 'pass' ? okSummary(share, pages.length) : badSummary(share, pages.length),
+    ev,
+    { ok, total: pages.length },
+  );
 }
 
-const offerPrice = (p: ExtractedProduct) => p.offers.find((o) => o.price !== undefined || o.lowPrice !== undefined);
+const offerPrice = (p: ExtractedProduct) =>
+  p.offers.find((o) => o.price !== undefined || o.lowPrice !== undefined);
 
 export const productChecks: CheckDefinition[] = [
   {
@@ -210,9 +253,17 @@ export const productChecks: CheckDefinition[] = [
         label: 'No Product found',
         url: p.url,
         expected: 'a schema.org Product or ProductGroup in JSON-LD',
-        found: p.jsonLdBlocks === 0 ? 'no JSON-LD blocks' : `${p.jsonLdBlocks} JSON-LD block(s)${p.jsonLdErrors ? `, ${p.jsonLdErrors} unparseable` : ''}, none a Product`,
+        found:
+          p.jsonLdBlocks === 0
+            ? 'no JSON-LD blocks'
+            : `${p.jsonLdBlocks} JSON-LD block(s)${p.jsonLdErrors ? `, ${p.jsonLdErrors} unparseable` : ''}, none a Product`,
       }));
-      return result(status, `${pct(ok, pages.length)} of ${pages.length} sampled product pages have Product structured data.`, ev, { ok, total: pages.length });
+      return result(
+        status,
+        `${pct(ok, pages.length)} of ${pages.length} sampled product pages have Product structured data.`,
+        ev,
+        { ok, total: pages.length },
+      );
     },
   },
   {
@@ -255,7 +306,9 @@ export const productChecks: CheckDefinition[] = [
           const vals = p.offers.map((o) => o.availability).filter(Boolean) as string[];
           if (!vals.length) return 'missing offers.availability';
           const badVal = vals.find((v) => !availabilityName(v));
-          return badVal ? `availability "${truncate(badVal, 60)}" is not a schema.org ItemAvailability URL (e.g. https://schema.org/InStock)` : null;
+          return badVal
+            ? `availability "${truncate(badVal, 60)}" is not a schema.org ItemAvailability URL (e.g. https://schema.org/InStock)`
+            : null;
         },
         (s, n) => `${s} of ${n} products declare availability using schema.org values.`,
         (s, n) => `Only ${s} of ${n} products declare availability using schema.org values.`,
@@ -312,7 +365,10 @@ export const productChecks: CheckDefinition[] = [
     async run(ctx) {
       return ratioCheck(
         ctx,
-        (p) => (p.hasReturnPolicy || p.offers.some((o) => o.hasReturnPolicy) ? null : 'missing hasMerchantReturnPolicy (offer or organization)'),
+        (p) =>
+          p.hasReturnPolicy || p.offers.some((o) => o.hasReturnPolicy)
+            ? null
+            : 'missing hasMerchantReturnPolicy (offer or organization)',
         (s, n) => `${s} of ${n} products have a return policy (on the offer or your organization).`,
         (s, n) => `Only ${s} of ${n} products have a return policy (on the offer or your organization).`,
       );

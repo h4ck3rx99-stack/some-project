@@ -6,7 +6,11 @@ import type { AlertChannel } from './channel';
  * Generic JSON webhook. Goes through safeFetch so alert channels cannot be used for SSRF.
  * Body is signed: header `x-cartprobe-signature: sha256=<hex HMAC of "<timestamp>.<body>">`.
  */
-export function webhookChannel(opts: { signingSecret: string; fetchImpl?: FetchLike; userAgent: string }): AlertChannel {
+export function webhookChannel(opts: {
+  signingSecret: string;
+  fetchImpl?: FetchLike;
+  userAgent: string;
+}): AlertChannel {
   return {
     type: 'webhook',
     async send(url, p) {
@@ -16,14 +20,20 @@ export function webhookChannel(opts: { signingSecret: string; fetchImpl?: FetchL
       const r = await safeFetch(url, {
         method: 'POST',
         body,
-        headers: { 'content-type': 'application/json', 'x-cartprobe-timestamp': ts, 'x-cartprobe-signature': `sha256=${sig}` },
+        headers: {
+          'content-type': 'application/json',
+          'x-cartprobe-timestamp': ts,
+          'x-cartprobe-signature': `sha256=${sig}`,
+        },
         maxRedirects: 0,
         timeoutMs: 8000,
         maxBytes: 64_000,
         fetchImpl: opts.fetchImpl,
         userAgent: opts.userAgent,
       });
-      return r.status >= 200 && r.status < 300 ? { ok: true } : { ok: false, error: r.error ? `${r.error.kind}: ${r.error.message}` : `HTTP ${r.status}` };
+      return r.status >= 200 && r.status < 300
+        ? { ok: true }
+        : { ok: false, error: r.error ? `${r.error.kind}: ${r.error.message}` : `HTTP ${r.status}` };
     },
   };
 }

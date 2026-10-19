@@ -85,7 +85,9 @@ export function parseJsonLdBlocks(blocks: string[]): { nodes: unknown[]; errors:
 function types(node: Record<string, unknown>): string[] {
   const t = node['@type'];
   const arr = Array.isArray(t) ? t : [t];
-  return arr.filter((x): x is string => typeof x === 'string').map((x) => x.replace(/^https?:\/\/schema\.org\//, ''));
+  return arr
+    .filter((x): x is string => typeof x === 'string')
+    .map((x) => x.replace(/^https?:\/\/schema\.org\//, ''));
 }
 
 function str(v: unknown): string | undefined {
@@ -193,7 +195,10 @@ export function findProducts(nodes: unknown[]): { products: ExtractedProduct[]; 
     if (t.includes('Product') && !insideGroup) {
       products.push(toProduct(n, 'Product'));
     }
-    if ((t.includes('Organization') || t.includes('OnlineStore') || t.includes('Store')) && present(n.hasMerchantReturnPolicy)) {
+    if (
+      (t.includes('Organization') || t.includes('OnlineStore') || t.includes('Store')) &&
+      present(n.hasMerchantReturnPolicy)
+    ) {
       orgReturnPolicy = true;
     }
     for (const child of Object.values(n)) walk(child, insideGroup);
@@ -203,7 +208,16 @@ export function findProducts(nodes: unknown[]): { products: ExtractedProduct[]; 
   return { products, orgReturnPolicy };
 }
 
-export const IN_STOCK_VALUES = ['InStock', 'LimitedAvailability', 'OnlineOnly', 'InStoreOnly', 'PreOrder', 'PreSale', 'BackOrder', 'MadeToOrder'];
+export const IN_STOCK_VALUES = [
+  'InStock',
+  'LimitedAvailability',
+  'OnlineOnly',
+  'InStoreOnly',
+  'PreOrder',
+  'PreSale',
+  'BackOrder',
+  'MadeToOrder',
+];
 export const OUT_OF_STOCK_VALUES = ['OutOfStock', 'SoldOut', 'Discontinued'];
 const ALL_AVAILABILITY = [...IN_STOCK_VALUES, ...OUT_OF_STOCK_VALUES, 'Reserved'];
 

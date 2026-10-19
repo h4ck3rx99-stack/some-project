@@ -20,7 +20,11 @@ export function testInput(host: string, over: Partial<ScanInput> = {}): ScanInpu
   };
 }
 
-export function testContext(input: ScanInput, state: ScanState = initialState(), fetchImpl: FetchLike = mockFetch): ScanContext {
+export function testContext(
+  input: ScanInput,
+  state: ScanState = initialState(),
+  fetchImpl: FetchLike = mockFetch,
+): ScanContext {
   return createContext(input, state, {
     fetchImpl,
     sleep: async () => undefined,
@@ -42,7 +46,9 @@ export async function runScan(host: string, over: Partial<ScanInput> = {}, fetch
     phase = (await runPhase(phase, ctx)).next;
   }
   const results = state.results;
-  const score = scoreScan(Object.values(results), { includeCheckout: input.verifiedOwnership && input.testModeConfirmed });
+  const score = scoreScan(Object.values(results), {
+    includeCheckout: input.verifiedOwnership && input.testModeConfirmed,
+  });
   const status = (id: string) => results[id]?.status;
   return { state, results, score, status, phases };
 }

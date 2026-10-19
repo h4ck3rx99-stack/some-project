@@ -55,7 +55,9 @@ export function hasCapability(profile: unknown, name: string): boolean {
 
 /** First REST endpoint of the dev.ucp.shopping service (spec: overview "Endpoint Resolution"). */
 export function restEndpoint(profile: unknown): string | undefined {
-  const s = services(profile).find((x) => x.name === 'dev.ucp.shopping' && x.transport === 'rest' && typeof x.endpoint === 'string');
+  const s = services(profile).find(
+    (x) => x.name === 'dev.ucp.shopping' && x.transport === 'rest' && typeof x.endpoint === 'string',
+  );
   return s ? String(s.endpoint).replace(/\/+$/, '') : undefined;
 }
 
@@ -64,7 +66,10 @@ export function restEndpoint(profile: unknown): string | undefined {
  * the `schema` URL must parse, be https, carry no userinfo, have a ≥2-label non-IP host; its
  * reversed host labels must equal the entity name or be a label-aligned prefix of it.
  */
-export function authorityBinding(name: string, schemaUrl: string): { ok: boolean; reason: string; authorityPrefix?: string } {
+export function authorityBinding(
+  name: string,
+  schemaUrl: string,
+): { ok: boolean; reason: string; authorityPrefix?: string } {
   let url: URL;
   try {
     url = new URL(schemaUrl);
@@ -75,11 +80,17 @@ export function authorityBinding(name: string, schemaUrl: string): { ok: boolean
   if (url.username || url.password) return { ok: false, reason: 'schema URL must not contain userinfo' };
   let host = url.hostname.toLowerCase();
   if (host.endsWith('.')) host = host.slice(0, -1);
-  if (host.startsWith('[') || /^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return { ok: false, reason: 'IP-literal hosts are not valid authorities' };
+  if (host.startsWith('[') || /^\d{1,3}(\.\d{1,3}){3}$/.test(host))
+    return { ok: false, reason: 'IP-literal hosts are not valid authorities' };
   const labels = host.split('.');
   if (labels.length < 2) return { ok: false, reason: 'single-label hosts are not valid authorities' };
   const prefix = labels.reverse().join('.');
   const n = name.toLowerCase();
-  if (n === prefix || n.startsWith(prefix + '.')) return { ok: true, reason: 'matches', authorityPrefix: prefix };
-  return { ok: false, reason: `host ${host} reversed is "${prefix}", which is not a label-aligned prefix of "${name}"`, authorityPrefix: prefix };
+  if (n === prefix || n.startsWith(prefix + '.'))
+    return { ok: true, reason: 'matches', authorityPrefix: prefix };
+  return {
+    ok: false,
+    reason: `host ${host} reversed is "${prefix}", which is not a label-aligned prefix of "${name}"`,
+    authorityPrefix: prefix,
+  };
 }

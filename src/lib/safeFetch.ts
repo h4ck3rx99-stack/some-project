@@ -102,7 +102,10 @@ const BLOCKED_HOSTS = new Set(['localhost', 'localhost.localdomain', 'ip6-localh
 export type UrlCheck = { ok: true; url: URL } | { ok: false; reason: string };
 
 /** Validate a URL against CartProbe's outbound rules. Pure; exported for tests and forms. */
-export function checkUrl(input: string, opts: { allowHttp?: boolean; allowTestTld?: boolean } = {}): UrlCheck {
+export function checkUrl(
+  input: string,
+  opts: { allowHttp?: boolean; allowTestTld?: boolean } = {},
+): UrlCheck {
   let url: URL;
   try {
     url = new URL(input);
@@ -119,7 +122,8 @@ export function checkUrl(input: string, opts: { allowHttp?: boolean; allowTestTl
 
   let host = url.hostname.toLowerCase();
   if (host.endsWith('.')) host = host.slice(0, -1);
-  if (host.startsWith('[') || host.includes(':')) return { ok: false, reason: 'IP address hosts are not allowed' };
+  if (host.startsWith('[') || host.includes(':'))
+    return { ok: false, reason: 'IP address hosts are not allowed' };
   // WHATWG parsing normalises decimal/octal/hex IPv4 forms (e.g. 2130706433, 0x7f.1) to dotted quads.
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return { ok: false, reason: 'IP address hosts are not allowed' };
   const labels = host.split('.');
@@ -133,7 +137,8 @@ export function checkUrl(input: string, opts: { allowHttp?: boolean; allowTestTl
   for (const s of BLOCKED_SUFFIXES) {
     if (host.endsWith(s)) return { ok: false, reason: `hosts ending in ${s} are not allowed` };
   }
-  if (host.endsWith('.test') && !opts.allowTestTld) return { ok: false, reason: 'hosts ending in .test are not allowed' };
+  if (host.endsWith('.test') && !opts.allowTestTld)
+    return { ok: false, reason: 'hosts ending in .test are not allowed' };
   return { ok: true, url };
 }
 
@@ -251,7 +256,9 @@ export async function safeFetch(input: string, opts: SafeFetchOptions = {}): Pro
           current.href,
           redirects,
           timedOut ? 'timeout' : 'network',
-          timedOut ? `no response within ${timeoutMs} ms` : `network error: ${String((e as Error)?.message ?? e).slice(0, 200)}`,
+          timedOut
+            ? `no response within ${timeoutMs} ms`
+            : `network error: ${String((e as Error)?.message ?? e).slice(0, 200)}`,
           { ttfbMs: now() - started, totalMs: now() - started },
         );
       }
@@ -263,7 +270,16 @@ export async function safeFetch(input: string, opts: SafeFetchOptions = {}): Pro
         try {
           next = new URL(location, current);
         } catch {
-          return errorResult(input, current.href, redirects, 'network', 'invalid redirect Location header', { ttfbMs, totalMs: now() - started }, res.status, pickHeaders(res.headers));
+          return errorResult(
+            input,
+            current.href,
+            redirects,
+            'network',
+            'invalid redirect Location header',
+            { ttfbMs, totalMs: now() - started },
+            res.status,
+            pickHeaders(res.headers),
+          );
         }
         redirects.push({ from: current.href, to: next.href, status: res.status });
         await res.body?.cancel().catch(() => undefined);
@@ -282,14 +298,31 @@ export async function safeFetch(input: string, opts: SafeFetchOptions = {}): Pro
               timings: { ttfbMs, totalMs: now() - started },
             };
           }
-          return errorResult(input, current.href, redirects, 'too_many_redirects', `more than ${maxRedirects} redirects`, { ttfbMs, totalMs: now() - started });
+          return errorResult(
+            input,
+            current.href,
+            redirects,
+            'too_many_redirects',
+            `more than ${maxRedirects} redirects`,
+            { ttfbMs, totalMs: now() - started },
+          );
         }
         if (seen.has(next.href)) {
-          return errorResult(input, current.href, redirects, 'too_many_redirects', 'redirect loop detected', { ttfbMs, totalMs: now() - started });
+          return errorResult(input, current.href, redirects, 'too_many_redirects', 'redirect loop detected', {
+            ttfbMs,
+            totalMs: now() - started,
+          });
         }
         const check = checkUrl(next.href, opts);
         if (!check.ok) {
-          return errorResult(input, next.href, redirects, 'blocked_url', `redirect target blocked: ${check.reason}`, { ttfbMs, totalMs: now() - started });
+          return errorResult(
+            input,
+            next.href,
+            redirects,
+            'blocked_url',
+            `redirect target blocked: ${check.reason}`,
+            { ttfbMs, totalMs: now() - started },
+          );
         }
         if (res.status === 303 || ((res.status === 301 || res.status === 302) && currentMethod === 'POST')) {
           currentMethod = 'GET';
@@ -303,12 +336,30 @@ export async function safeFetch(input: string, opts: SafeFetchOptions = {}): Pro
       const contentType = res.headers.get('content-type');
       if (opts.requireContentType && !(contentType && opts.requireContentType.test(contentType))) {
         await res.body?.cancel().catch(() => undefined);
-        return errorResult(input, current.href, redirects, 'bad_content_type', `unexpected content-type ${contentType ?? '(none)'}`, { ttfbMs, totalMs: now() - started }, res.status, headers);
+        return errorResult(
+          input,
+          current.href,
+          redirects,
+          'bad_content_type',
+          `unexpected content-type ${contentType ?? '(none)'}`,
+          { ttfbMs, totalMs: now() - started },
+          res.status,
+          headers,
+        );
       }
       const declared = Number(res.headers.get('content-length') ?? NaN);
       if (Number.isFinite(declared) && declared > maxBytes * 4) {
         await res.body?.cancel().catch(() => undefined);
-        return errorResult(input, current.href, redirects, 'too_large', `response is ${declared} bytes (limit ${maxBytes})`, { ttfbMs, totalMs: now() - started }, res.status, headers);
+        return errorResult(
+          input,
+          current.href,
+          redirects,
+          'too_large',
+          `response is ${declared} bytes (limit ${maxBytes})`,
+          { ttfbMs, totalMs: now() - started },
+          res.status,
+          headers,
+        );
       }
       let text = '';
       let truncated = false;
@@ -317,7 +368,16 @@ export async function safeFetch(input: string, opts: SafeFetchOptions = {}): Pro
           ({ text, truncated } = await readCapped(res, maxBytes, controller.signal));
         } catch {
           const timedOut = controller.signal.aborted;
-          return errorResult(input, current.href, redirects, timedOut ? 'timeout' : 'network', timedOut ? `body not received within ${timeoutMs} ms` : 'error reading body', { ttfbMs, totalMs: now() - started }, res.status, headers);
+          return errorResult(
+            input,
+            current.href,
+            redirects,
+            timedOut ? 'timeout' : 'network',
+            timedOut ? `body not received within ${timeoutMs} ms` : 'error reading body',
+            { ttfbMs, totalMs: now() - started },
+            res.status,
+            headers,
+          );
         }
       }
       let json: unknown;
@@ -367,7 +427,13 @@ export class FetchSession {
     const cacheable = method === 'GET' || method === 'HEAD';
     if (cacheable && this.cache.has(key)) return this.cache.get(key)!;
     if (this.requests >= this.base.maxRequests) {
-      return errorResult(url, url, [], 'budget_exceeded', `request budget of ${this.base.maxRequests} reached for this scan`);
+      return errorResult(
+        url,
+        url,
+        [],
+        'budget_exceeded',
+        `request budget of ${this.base.maxRequests} reached for this scan`,
+      );
     }
     let domain = '';
     try {

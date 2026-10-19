@@ -1,8 +1,21 @@
 import { LATENCY } from '../../config/weights';
 import type { CheckDefinition, ScanContext } from '../../scan/types';
-import { authorityBinding, capabilities, declaredVersion, paymentHandlers, restEndpoint, services } from '../../ucp/profile';
+import {
+  authorityBinding,
+  capabilities,
+  declaredVersion,
+  paymentHandlers,
+  restEndpoint,
+  services,
+} from '../../ucp/profile';
 import { formatAjvError, validate, validationVersion } from '../../ucp/validators';
-import { classifyVersion, KNOWN_RELEASES, LATEST_VERSION, PREVIOUS_VERSION, VERSION_RE } from '../../ucp/versions';
+import {
+  classifyVersion,
+  KNOWN_RELEASES,
+  LATEST_VERSION,
+  PREVIOUS_VERSION,
+  VERSION_RE,
+} from '../../ucp/versions';
 import { describeFetch, isObj, result, summarize, truncate } from '../helpers';
 
 const PROFILE_PATH = '/.well-known/ucp';
@@ -12,14 +25,20 @@ const MAX_STORED_PROFILE = 128 * 1024;
 export async function prepareDiscovery(ctx: ScanContext): Promise<void> {
   const url = ctx.url + PROFILE_PATH;
   // Spec (overview "Profile Requirements → Hosting/Fetching"): no redirects; bound body size.
-  const r = await ctx.http.fetch(url, { accept: 'application/json', maxRedirects: 0, maxBytes: 1_000_000, timeoutMs: 8000 });
+  const r = await ctx.http.fetch(url, {
+    accept: 'application/json',
+    maxRedirects: 0,
+    maxBytes: 1_000_000,
+    timeoutMs: 8000,
+  });
   const state: NonNullable<ScanContext['state']['profile']> = { fetch: summarize(r) };
   if (r.bodyText !== undefined && r.status >= 200 && r.status < 300) {
     state.bodySnippet = truncate(r.bodyText.trim(), 300);
     try {
       const parsed: unknown = JSON.parse(r.bodyText);
       if (r.bodyText.length <= MAX_STORED_PROFILE) state.json = parsed;
-      else state.parseError = `profile is ${r.bodyText.length} bytes; CartProbe analyses profiles up to ${MAX_STORED_PROFILE} bytes`;
+      else
+        state.parseError = `profile is ${r.bodyText.length} bytes; CartProbe analyses profiles up to ${MAX_STORED_PROFILE} bytes`;
       ctx.state.profileVersion = declaredVersion(parsed);
       ctx.state.restEndpoint = restEndpoint(parsed);
     } catch (e) {
@@ -51,14 +70,27 @@ export const discoveryChecks: CheckDefinition[] = [
         ]);
       }
       if (f.status >= 300 && f.status < 400) {
-        return result('fail', 'Your UCP profile URL redirects. The spec says profile endpoints must not redirect and agents must not follow redirects.', [
-          { label: 'Redirect', url, expected: 'HTTP 200 served directly at this URL', found: `HTTP ${f.status} → ${f.redirects[0]?.to ?? f.headers.location ?? '(no Location)'}` },
-        ]);
+        return result(
+          'fail',
+          'Your UCP profile URL redirects. The spec says profile endpoints must not redirect and agents must not follow redirects.',
+          [
+            {
+              label: 'Redirect',
+              url,
+              expected: 'HTTP 200 served directly at this URL',
+              found: `HTTP ${f.status} → ${f.redirects[0]?.to ?? f.headers.location ?? '(no Location)'}`,
+            },
+          ],
+        );
       }
       if (f.status < 200 || f.status >= 300) {
-        return result('fail', `Your UCP profile returned HTTP ${f.status}.`, [{ label: 'Request', url, expected: 'HTTP 200', found: describeFetch(f) }]);
+        return result('fail', `Your UCP profile returned HTTP ${f.status}.`, [
+          { label: 'Request', url, expected: 'HTTP 200', found: describeFetch(f) },
+        ]);
       }
-      return result('pass', 'Your UCP profile is served over HTTPS at /.well-known/ucp.', [{ label: 'Request', url, found: describeFetch(f) }]);
+      return result('pass', 'Your UCP profile is served over HTTPS at /.well-known/ucp.', [
+        { label: 'Request', url, found: describeFetch(f) },
+      ]);
     },
   },
   {
@@ -72,9 +104,13 @@ export const discoveryChecks: CheckDefinition[] = [
     async run(ctx) {
       const p = ctx.state.profile!;
       const ct = p.fetch.contentType ?? '(none)';
-      const ev = [{ label: 'Content-Type header', url: profileUrl(ctx), expected: 'application/json', found: ct }];
-      if (/(^|\/|\+)json\b/i.test(ct)) return result('pass', 'The profile is served with a JSON content type.', ev);
-      if (!p.parseError && p.json !== undefined) return result('warn', `The profile parses as JSON but is served as ${ct}.`, ev);
+      const ev = [
+        { label: 'Content-Type header', url: profileUrl(ctx), expected: 'application/json', found: ct },
+      ];
+      if (/(^|\/|\+)json\b/i.test(ct))
+        return result('pass', 'The profile is served with a JSON content type.', ev);
+      if (!p.parseError && p.json !== undefined)
+        return result('warn', `The profile parses as JSON but is served as ${ct}.`, ev);
       return result('fail', `The profile is served as ${ct} and is not JSON.`, ev);
     },
   },
@@ -95,7 +131,14 @@ export const discoveryChecks: CheckDefinition[] = [
         ]);
       }
       if (!isObj(p.json)) {
-        return result('fail', 'The profile is JSON but not an object.', [{ label: 'Body', url: profileUrl(ctx), expected: 'A JSON object with a "ucp" member', found: p.bodySnippet ?? '' }]);
+        return result('fail', 'The profile is JSON but not an object.', [
+          {
+            label: 'Body',
+            url: profileUrl(ctx),
+            expected: 'A JSON object with a "ucp" member',
+            found: p.bodySnippet ?? '',
+          },
+        ]);
       }
       return result('pass', 'The profile is a valid JSON object.');
     },
@@ -112,8 +155,12 @@ export const discoveryChecks: CheckDefinition[] = [
       const v = validationVersion(ctx.state.profileVersion);
       const out = validate('profile', ctx.state.profile!.json, v);
       const declared = ctx.state.profileVersion ?? '(none)';
-      const note = declared === v ? `version ${v}` : `latest vendored version ${v} (profile declares ${declared})`;
-      if (out.valid) return result('pass', `The profile validates against the UCP ${note} business profile schema.`, [], { version: v });
+      const note =
+        declared === v ? `version ${v}` : `latest vendored version ${v} (profile declares ${declared})`;
+      if (out.valid)
+        return result('pass', `The profile validates against the UCP ${note} business profile schema.`, [], {
+          version: v,
+        });
       const errs = out.errors.slice(0, 20);
       return result(
         'fail',
@@ -133,15 +180,36 @@ export const discoveryChecks: CheckDefinition[] = [
     why: 'Agents prefer the most recent protocol version; older versions miss newer features and may stop being supported.',
     async run(ctx) {
       const v = ctx.state.profileVersion;
-      const ev = [{ label: 'ucp.version', url: profileUrl(ctx), expected: LATEST_VERSION, found: v ?? '(missing)' }];
+      const ev = [
+        { label: 'ucp.version', url: profileUrl(ctx), expected: LATEST_VERSION, found: v ?? '(missing)' },
+      ];
       const c = classifyVersion(v);
-      if (c === 'latest') return result('pass', `Your UCP profile declares version ${v}, the latest release.`, ev);
-      if (c === 'previous') return result('warn', `Your UCP profile declares version ${v}; the latest is ${LATEST_VERSION}. Agents may not use newer features with your store.`, ev);
-      if (c === 'older') return result('fail', `Your UCP profile declares version ${v}, which is older than the previous release (${PREVIOUS_VERSION}). The latest is ${LATEST_VERSION}.`, ev);
+      if (c === 'latest')
+        return result('pass', `Your UCP profile declares version ${v}, the latest release.`, ev);
+      if (c === 'previous')
+        return result(
+          'warn',
+          `Your UCP profile declares version ${v}; the latest is ${LATEST_VERSION}. Agents may not use newer features with your store.`,
+          ev,
+        );
+      if (c === 'older')
+        return result(
+          'fail',
+          `Your UCP profile declares version ${v}, which is older than the previous release (${PREVIOUS_VERSION}). The latest is ${LATEST_VERSION}.`,
+          ev,
+        );
       if (typeof v === 'string' && VERSION_RE.test(v) && v > LATEST_VERSION) {
-        return result('warn', `Your profile declares ${v}, newer than the latest release CartProbe knows (${LATEST_VERSION}). We will update our checks; nothing to fix on your side if this is a real release.`, ev);
+        return result(
+          'warn',
+          `Your profile declares ${v}, newer than the latest release CartProbe knows (${LATEST_VERSION}). We will update our checks; nothing to fix on your side if this is a real release.`,
+          ev,
+        );
       }
-      return result('fail', `Your profile declares ${v === undefined ? 'no version' : `"${truncate(String(v), 40)}"`}, which is not a published UCP release (${KNOWN_RELEASES.join(', ')}).`, ev);
+      return result(
+        'fail',
+        `Your profile declares ${v === undefined ? 'no version' : `"${truncate(String(v), 40)}"`}, which is not a published UCP release (${KNOWN_RELEASES.join(', ')}).`,
+        ev,
+      );
     },
   },
   {
@@ -156,9 +224,25 @@ export const discoveryChecks: CheckDefinition[] = [
       const caps = capabilities(ctx.state.profile!.json);
       const names = [...new Set(caps.map((c) => c.name))];
       const shopping = names.filter((n) => /\.shopping\./.test(n));
-      const ev = [{ label: 'Declared capabilities', url: profileUrl(ctx), found: names.length ? truncate(names.join(', ')) : '(none)' }];
-      if (shopping.length === 0) return result('fail', 'Your profile declares no shopping capabilities (such as dev.ucp.shopping.checkout or dev.ucp.shopping.catalog.search).', ev);
-      return result('pass', `Your profile declares ${shopping.length} shopping capabilit${shopping.length === 1 ? 'y' : 'ies'}: ${truncate(shopping.join(', '), 300)}.`, ev, { capabilities: names });
+      const ev = [
+        {
+          label: 'Declared capabilities',
+          url: profileUrl(ctx),
+          found: names.length ? truncate(names.join(', ')) : '(none)',
+        },
+      ];
+      if (shopping.length === 0)
+        return result(
+          'fail',
+          'Your profile declares no shopping capabilities (such as dev.ucp.shopping.checkout or dev.ucp.shopping.catalog.search).',
+          ev,
+        );
+      return result(
+        'pass',
+        `Your profile declares ${shopping.length} shopping capabilit${shopping.length === 1 ? 'y' : 'ies'}: ${truncate(shopping.join(', '), 300)}.`,
+        ev,
+        { capabilities: names },
+      );
     },
   },
   {
@@ -177,11 +261,26 @@ export const discoveryChecks: CheckDefinition[] = [
         const v = typeof c.version === 'string' ? c.version : String(c.version ?? '(missing)');
         if (!VERSION_RE.test(v)) bad.push({ name: c.name, version: v });
         // dev.ucp.* entries carry the release date; third-party versions are author-controlled (spec "Capability Versions").
-        else if (c.name.startsWith('dev.ucp.') && !(KNOWN_RELEASES as readonly string[]).includes(v)) unknown.push({ name: c.name, version: v });
+        else if (c.name.startsWith('dev.ucp.') && !(KNOWN_RELEASES as readonly string[]).includes(v))
+          unknown.push({ name: c.name, version: v });
       }
-      const ev = [...bad, ...unknown].slice(0, 20).map((x) => ({ label: x.name, expected: 'YYYY-MM-DD matching a UCP release', found: truncate(x.version, 60) }));
-      if (bad.length) return result('fail', `${bad.length} capability version${bad.length === 1 ? ' is' : 's are'} not in YYYY-MM-DD format.`, ev);
-      if (unknown.length) return result('warn', `${unknown.length} dev.ucp capability version${unknown.length === 1 ? ' does' : 's do'} not match a published UCP release.`, ev);
+      const ev = [...bad, ...unknown].slice(0, 20).map((x) => ({
+        label: x.name,
+        expected: 'YYYY-MM-DD matching a UCP release',
+        found: truncate(x.version, 60),
+      }));
+      if (bad.length)
+        return result(
+          'fail',
+          `${bad.length} capability version${bad.length === 1 ? ' is' : 's are'} not in YYYY-MM-DD format.`,
+          ev,
+        );
+      if (unknown.length)
+        return result(
+          'warn',
+          `${unknown.length} dev.ucp capability version${unknown.length === 1 ? ' does' : 's do'} not match a published UCP release.`,
+          ev,
+        );
       return result('pass', `All ${caps.length} capability versions are well-formed.`);
     },
   },
@@ -205,14 +304,35 @@ export const discoveryChecks: CheckDefinition[] = [
           const b = authorityBinding(e.name, e.schema);
           if (!b.ok) failures.push({ name: e.name, schema: e.schema, reason: b.reason });
         } else if (e.kind === 'capability') {
-          failures.push({ name: e.name, schema: '(missing)', reason: 'capabilities must declare a schema URL' });
+          failures.push({
+            name: e.name,
+            schema: '(missing)',
+            reason: 'capabilities must declare a schema URL',
+          });
         }
-        if (typeof e.spec === 'string' && !/^https:\/\//i.test(e.spec)) specProblems.push({ name: e.name, spec: e.spec });
+        if (typeof e.spec === 'string' && !/^https:\/\//i.test(e.spec))
+          specProblems.push({ name: e.name, spec: e.spec });
       }
-      const ev = failures.slice(0, 20).map((f) => ({ label: f.name, url: f.schema.startsWith('http') ? f.schema : undefined, expected: 'schema host whose reversed labels prefix the name (e.g. ucp.dev for dev.ucp.*)', found: truncate(f.reason, 200) }));
-      if (failures.length) return result('fail', `${failures.length} declared entit${failures.length === 1 ? 'y has' : 'ies have'} a schema URL that does not match its namespace. Agents will ignore ${failures.length === 1 ? 'it' : 'them'}.`, ev);
+      const ev = failures.slice(0, 20).map((f) => ({
+        label: f.name,
+        url: f.schema.startsWith('http') ? f.schema : undefined,
+        expected: 'schema host whose reversed labels prefix the name (e.g. ucp.dev for dev.ucp.*)',
+        found: truncate(f.reason, 200),
+      }));
+      if (failures.length)
+        return result(
+          'fail',
+          `${failures.length} declared entit${failures.length === 1 ? 'y has' : 'ies have'} a schema URL that does not match its namespace. Agents will ignore ${failures.length === 1 ? 'it' : 'them'}.`,
+          ev,
+        );
       if (specProblems.length) {
-        return result('warn', 'Schema URLs match their namespaces, but some spec URLs are not https.', specProblems.slice(0, 20).map((s) => ({ label: s.name, expected: 'https URL', found: truncate(s.spec, 200) })));
+        return result(
+          'warn',
+          'Schema URLs match their namespaces, but some spec URLs are not https.',
+          specProblems
+            .slice(0, 20)
+            .map((s) => ({ label: s.name, expected: 'https URL', found: truncate(s.spec, 200) })),
+        );
       }
       return result('pass', `All ${checked} schema URLs are served from hosts matching their namespace.`);
     },
@@ -229,17 +349,33 @@ export const discoveryChecks: CheckDefinition[] = [
       const eps = services(ctx.state.profile!.json)
         .filter((s) => typeof s.endpoint === 'string' && ['rest', 'mcp', 'a2a'].includes(String(s.transport)))
         .slice(0, 5);
-      if (eps.length === 0) return result('skip', 'Your profile declares no REST, MCP or A2A endpoints to check.');
+      if (eps.length === 0)
+        return result('skip', 'Your profile declares no REST, MCP or A2A endpoints to check.');
       const bad: string[] = [];
       const ev = [];
       for (const s of eps) {
         // A plain GET has no side effects. 2xx–4xx means the server is there; 5xx/timeouts mean it is not.
-        const r = await ctx.http.fetch(String(s.endpoint), { method: 'GET', timeoutMs: 6000, maxBytes: 64_000, maxRedirects: 3 });
+        const r = await ctx.http.fetch(String(s.endpoint), {
+          method: 'GET',
+          timeoutMs: 6000,
+          maxBytes: 64_000,
+          maxRedirects: 3,
+        });
         const healthy = !r.error && r.status >= 200 && r.status < 500;
         if (!healthy) bad.push(String(s.endpoint));
-        ev.push({ label: `${s.name} (${String(s.transport)})`, url: String(s.endpoint), expected: 'any HTTP response below 500', found: describeFetch(summarize(r)) });
+        ev.push({
+          label: `${s.name} (${String(s.transport)})`,
+          url: String(s.endpoint),
+          expected: 'any HTTP response below 500',
+          found: describeFetch(summarize(r)),
+        });
       }
-      if (bad.length) return result('fail', `${bad.length} of ${eps.length} declared endpoints did not respond correctly.`, ev);
+      if (bad.length)
+        return result(
+          'fail',
+          `${bad.length} of ${eps.length} declared endpoints did not respond correctly.`,
+          ev,
+        );
       return result('pass', `All ${eps.length} declared endpoints respond.`, ev);
     },
   },
@@ -253,7 +389,14 @@ export const discoveryChecks: CheckDefinition[] = [
     why: 'Agents work under tight time budgets; slow discovery delays or drops your store.',
     async run(ctx) {
       const t = ctx.state.profile!.fetch.ttfbMs;
-      const ev = [{ label: 'Time to first byte', url: profileUrl(ctx), expected: `< ${LATENCY.profileTtfb.pass} ms`, found: `${t} ms` }];
+      const ev = [
+        {
+          label: 'Time to first byte',
+          url: profileUrl(ctx),
+          expected: `< ${LATENCY.profileTtfb.pass} ms`,
+          found: `${t} ms`,
+        },
+      ];
       if (t < LATENCY.profileTtfb.pass) return result('pass', `The profile responded in ${t} ms.`, ev);
       if (t < LATENCY.profileTtfb.warn) return result('warn', `The profile took ${t} ms to respond.`, ev);
       return result('fail', `The profile took ${t} ms to respond.`, ev);
@@ -271,13 +414,28 @@ export const discoveryChecks: CheckDefinition[] = [
       const h = ctx.state.profile!.fetch.headers;
       const cc = (h['cache-control'] ?? '').toLowerCase();
       const maxAge = Number(/(?:^|,)\s*max-age=(\d+)/.exec(cc)?.[1] ?? NaN);
-      const ev = [{ label: 'Cache-Control', url: profileUrl(ctx), expected: 'public, max-age=60 or more (no private/no-store/no-cache)', found: h['cache-control'] ?? '(missing)' }];
+      const ev = [
+        {
+          label: 'Cache-Control',
+          url: profileUrl(ctx),
+          expected: 'public, max-age=60 or more (no private/no-store/no-cache)',
+          found: h['cache-control'] ?? '(missing)',
+        },
+      ];
       const forbidden = /\b(private|no-store|no-cache)\b/.test(cc);
       if (!cc || !/\bpublic\b/.test(cc) || !(maxAge >= 60) || forbidden) {
-        return result('fail', 'Your profile does not send the Cache-Control header the spec requires (public, max-age of at least 60 seconds).', ev);
+        return result(
+          'fail',
+          'Your profile does not send the Cache-Control header the spec requires (public, max-age of at least 60 seconds).',
+          ev,
+        );
       }
       if (!h.etag && !h['last-modified']) {
-        return result('warn', 'Your profile is cacheable but sends no ETag or Last-Modified header, so agents cannot revalidate it cheaply.', [...ev, { label: 'Validator', expected: 'ETag or Last-Modified', found: '(missing)' }]);
+        return result(
+          'warn',
+          'Your profile is cacheable but sends no ETag or Last-Modified header, so agents cannot revalidate it cheaply.',
+          [...ev, { label: 'Validator', expected: 'ETag or Last-Modified', found: '(missing)' }],
+        );
       }
       return result('pass', 'Your profile sends cache headers that meet the spec.', ev);
     },
@@ -293,8 +451,14 @@ export const discoveryChecks: CheckDefinition[] = [
     async run(ctx) {
       const t = [...new Set(services(ctx.state.profile!.json).map((s) => String(s.transport)))];
       const extra = t.filter((x) => x === 'mcp' || x === 'a2a');
-      if (extra.length) return result('pass', `Your profile also offers: ${extra.join(', ')}.`, [{ label: 'Transports', found: t.join(', ') }]);
-      return result('skip', `Informational: your profile declares ${t.length ? t.join(', ') : 'no'} transport${t.length === 1 ? '' : 's'}; no MCP or A2A binding.`);
+      if (extra.length)
+        return result('pass', `Your profile also offers: ${extra.join(', ')}.`, [
+          { label: 'Transports', found: t.join(', ') },
+        ]);
+      return result(
+        'skip',
+        `Informational: your profile declares ${t.length ? t.join(', ') : 'no'} transport${t.length === 1 ? '' : 's'}; no MCP or A2A binding.`,
+      );
     },
   },
 ];

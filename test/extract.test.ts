@@ -4,22 +4,41 @@ import { availabilityName, extractHtml } from '../src/scan/extract';
 import { decimalToMinor, formatMinor, priceFormatProblem } from '../src/lib/money';
 import { fixture } from './fixtures';
 
-const page = (f: string) => extractProductPage('https://s.example.com/p', 200, fixture(`pages/${f}`, 's.example.com'));
+const page = (f: string) =>
+  extractProductPage('https://s.example.com/p', 200, fixture(`pages/${f}`, 's.example.com'));
 
 describe('JSON-LD extraction', () => {
   it('complete product', async () => {
     const p = await page('product.complete.html');
     expect(p.products).toHaveLength(1);
     const x = p.products[0]!;
-    expect(x).toMatchObject({ type: 'Product', name: 'Blue Runner Pro', hasImage: true, hasBrand: true, sku: 'BRP-BLU-10', gtin: '0012345678905' });
-    expect(x.offers[0]).toMatchObject({ price: '120.00', priceCurrency: 'USD', availability: 'https://schema.org/InStock', hasShippingDetails: true, hasReturnPolicy: true });
+    expect(x).toMatchObject({
+      type: 'Product',
+      name: 'Blue Runner Pro',
+      hasImage: true,
+      hasBrand: true,
+      sku: 'BRP-BLU-10',
+      gtin: '0012345678905',
+    });
+    expect(x.offers[0]).toMatchObject({
+      price: '120.00',
+      priceCurrency: 'USD',
+      availability: 'https://schema.org/InStock',
+      hasShippingDetails: true,
+      hasReturnPolicy: true,
+    });
   });
 
   it('@graph with organization return policy and offers array', async () => {
     const p = await page('product.graph.html');
     expect(p.jsonLdBlocks).toBe(2);
     expect(p.products).toHaveLength(1);
-    expect(p.products[0]).toMatchObject({ name: 'Trail Jacket', mpn: 'TJ-2026', hasReturnPolicy: true, hasImage: true });
+    expect(p.products[0]).toMatchObject({
+      name: 'Trail Jacket',
+      mpn: 'TJ-2026',
+      hasReturnPolicy: true,
+      hasImage: true,
+    });
     expect(p.products[0]!.offers[0]!.price).toBe('89.50');
   });
 
@@ -55,7 +74,9 @@ describe('JSON-LD extraction', () => {
   });
 
   it('reads <title>', async () => {
-    expect((await extractHtml('<html><head><title> A  &amp; B </title></head></html>')).title).toBe('A &amp; B');
+    expect((await extractHtml('<html><head><title> A  &amp; B </title></head></html>')).title).toBe(
+      'A &amp; B',
+    );
   });
 
   it('availability URLs', () => {
@@ -71,7 +92,11 @@ describe('sitemaps & sampling', () => {
     const idx = fixture('sitemaps/index.xml', 's.example.com');
     expect(isSitemapIndex(idx)).toBe(true);
     expect(parseSitemapLocs(idx)).toContain('https://s.example.com/product-sitemap.xml');
-    expect(parseSitemapLocs('<urlset><url><loc><![CDATA[https://a.example.com/p?a=1&amp;b=2]]></loc></url></urlset>')).toEqual(['https://a.example.com/p?a=1&b=2']);
+    expect(
+      parseSitemapLocs(
+        '<urlset><url><loc><![CDATA[https://a.example.com/p?a=1&amp;b=2]]></loc></url></urlset>',
+      ),
+    ).toEqual(['https://a.example.com/p?a=1&b=2']);
   });
   it('samples evenly across the list', () => {
     const list = Array.from({ length: 100 }, (_, i) => i);

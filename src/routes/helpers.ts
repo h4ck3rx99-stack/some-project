@@ -33,7 +33,8 @@ export type HonoEnv = { Bindings: Bindings; Variables: Vars };
 export type Ctx = Context<HonoEnv>;
 
 export async function clientIpHash(c: Ctx): Promise<string> {
-  const ip = c.req.header('cf-connecting-ip') ?? c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const ip =
+    c.req.header('cf-connecting-ip') ?? c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   return ipHash(c.var.env.IP_HASH_SALT, ip);
 }
 
@@ -75,7 +76,9 @@ export async function requireCsrf(c: Ctx, form?: Record<string, unknown>): Promi
   const session = c.var.session;
   const provided = (typeof form?._csrf === 'string' ? form._csrf : undefined) ?? c.req.header('x-csrf-token');
   if (!session || !(await checkCsrf(c.var.env.SESSION_SECRET, session.csrfSecret, provided))) {
-    throw new HTTPException(403, { message: 'Your session form token was missing or invalid. Reload the page and try again.' });
+    throw new HTTPException(403, {
+      message: 'Your session form token was missing or invalid. Reload the page and try again.',
+    });
   }
 }
 
@@ -108,7 +111,12 @@ export function alertDeps(c: { env: Bindings; var: Pick<Vars, 'env' | 'fetchImpl
   };
 }
 
-export function runnerDeps(bindings: Bindings, env: AppEnv, fetchImpl?: FetchLike, sleep?: (ms: number) => Promise<void>): RunnerDeps {
+export function runnerDeps(
+  bindings: Bindings,
+  env: AppEnv,
+  fetchImpl?: FetchLike,
+  sleep?: (ms: number) => Promise<void>,
+): RunnerDeps {
   const deps: RunnerDeps = {
     d1: bindings.DB,
     appUrl: env.APP_URL,
@@ -126,5 +134,11 @@ export function runnerDeps(bindings: Bindings, env: AppEnv, fetchImpl?: FetchLik
 
 export function wantsJson(c: Ctx): boolean {
   const p = c.req.path;
-  return p.startsWith('/api/') || p.startsWith('/webhooks/') || p.endsWith('/status') || p === '/healthz' || (c.req.header('accept') ?? '').startsWith('application/json');
+  return (
+    p.startsWith('/api/') ||
+    p.startsWith('/webhooks/') ||
+    p.endsWith('/status') ||
+    p === '/healthz' ||
+    (c.req.header('accept') ?? '').startsWith('application/json')
+  );
 }

@@ -50,7 +50,10 @@ describe('public scan flow', () => {
     const ip = '192.0.2.55';
     const statuses: number[] = [];
     for (let i = 0; i < 6; i++) {
-      const r = await req('/scan', { ...form({ url: `rl${i}.mockstore.test` }), headers: { 'content-type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': ip } });
+      const r = await req('/scan', {
+        ...form({ url: `rl${i}.mockstore.test` }),
+        headers: { 'content-type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': ip },
+      });
       statuses.push(r.status);
     }
     expect(statuses).toEqual([303, 303, 303, 303, 303, 429]);
@@ -59,10 +62,19 @@ describe('public scan flow', () => {
   it('rate limits anonymous scans per domain (3/day)', async () => {
     const statuses: number[] = [];
     for (let i = 0; i < 4; i++) {
-      const r = await req('/scan', { ...form({ url: 'perdomain.mockstore.test' }), headers: { 'content-type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': `192.0.2.${100 + i}` } });
+      const r = await req('/scan', {
+        ...form({ url: 'perdomain.mockstore.test' }),
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+          'cf-connecting-ip': `192.0.2.${100 + i}`,
+        },
+      });
       statuses.push(r.status);
       // Age the scan so the "fresh scan" reuse does not kick in.
-      await getDb(env.DB).update(schema.scans).set({ createdAt: Date.now() - 2 * 60 * 60 * 1000 }).where(eq(schema.scans.domain, 'perdomain.mockstore.test'));
+      await getDb(env.DB)
+        .update(schema.scans)
+        .set({ createdAt: Date.now() - 2 * 60 * 60 * 1000 })
+        .where(eq(schema.scans.domain, 'perdomain.mockstore.test'));
     }
     expect(statuses).toEqual([303, 303, 303, 429]);
   });
@@ -82,14 +94,19 @@ describe('public scan flow', () => {
   it('returns JSON errors for API routes and HTML for pages', async () => {
     const api = await req('/api/v1/scans/x');
     expect(api.status).toBe(401);
-    expect(await api.json()).toEqual({ error: { code: 'unauthorized', message: 'Missing or invalid API key.' } });
+    expect(await api.json()).toEqual({
+      error: { code: 'unauthorized', message: 'Missing or invalid API key.' },
+    });
     const page = await req('/r/doesnotexist1');
     expect(page.status).toBe(404);
     expect(page.headers.get('content-type')).toContain('text/html');
   });
 
   it('blocks cross-site form posts', async () => {
-    const r = await req('/scan', { ...form({ url: 'good.mockstore.test' }), headers: { 'content-type': 'application/x-www-form-urlencoded', origin: 'https://evil.example.com' } });
+    const r = await req('/scan', {
+      ...form({ url: 'good.mockstore.test' }),
+      headers: { 'content-type': 'application/x-www-form-urlencoded', origin: 'https://evil.example.com' },
+    });
     expect(r.status).toBe(403);
   });
 });

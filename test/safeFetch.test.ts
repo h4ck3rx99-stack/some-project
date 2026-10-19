@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { checkUrl, FetchSession, safeFetch, type FetchLike } from '../src/lib/safeFetch';
 
-function router(routes: Record<string, (req: Request) => Response | Promise<Response>>): FetchLike & { calls: string[] } {
+function router(
+  routes: Record<string, (req: Request) => Response | Promise<Response>>,
+): FetchLike & { calls: string[] } {
   const calls: string[] = [];
   const fn = (async (req: Request) => {
     calls.push(req.url);
@@ -81,7 +83,8 @@ describe('safeFetch', () => {
 
   it('blocks a redirect from a good host to 127.0.0.1', async () => {
     const f = router({
-      'https://a.example.com/x': () => new Response(null, { status: 302, headers: { location: 'https://127.0.0.1/admin' } }),
+      'https://a.example.com/x': () =>
+        new Response(null, { status: 302, headers: { location: 'https://127.0.0.1/admin' } }),
     });
     const r = await safeFetch('https://a.example.com/x', { fetchImpl: f });
     expect(r.error?.kind).toBe('blocked_url');
@@ -90,8 +93,10 @@ describe('safeFetch', () => {
 
   it('blocks a redirect to http and to localhost', async () => {
     const f = router({
-      'https://a.example.com/1': () => new Response(null, { status: 302, headers: { location: 'http://a.example.com/' } }),
-      'https://a.example.com/2': () => new Response(null, { status: 302, headers: { location: 'https://localhost/' } }),
+      'https://a.example.com/1': () =>
+        new Response(null, { status: 302, headers: { location: 'http://a.example.com/' } }),
+      'https://a.example.com/2': () =>
+        new Response(null, { status: 302, headers: { location: 'https://localhost/' } }),
     });
     expect((await safeFetch('https://a.example.com/1', { fetchImpl: f })).error?.kind).toBe('blocked_url');
     expect((await safeFetch('https://a.example.com/2', { fetchImpl: f })).error?.kind).toBe('blocked_url');

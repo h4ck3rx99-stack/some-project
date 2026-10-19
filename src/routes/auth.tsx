@@ -10,7 +10,14 @@ import { maskEmail, sha256Hex } from '../lib/crypto';
 import { log } from '../lib/log';
 import { HOUR, hit } from '../lib/rateLimit';
 import { audit } from '../services/audit';
-import { consumeLoginToken, createLoginToken, createSession, destroySession, SESSION_COOKIE, SESSION_TTL_MS } from '../services/auth';
+import {
+  consumeLoginToken,
+  createLoginToken,
+  createSession,
+  destroySession,
+  SESSION_COOKIE,
+  SESSION_TTL_MS,
+} from '../services/auth';
 import { Layout, Notice } from '../views/layout';
 import { clientIpHash, requireCsrf, type HonoEnv } from './helpers';
 
@@ -32,7 +39,10 @@ authRoutes.get('/login', (c) => {
       <div style="max-width:440px">
         <h1>Log in or sign up</h1>
         {sent ? (
-          <Notice>If that address can receive email, a sign-in link is on its way. It works once and expires in 15 minutes.</Notice>
+          <Notice>
+            If that address can receive email, a sign-in link is on its way. It works once and expires in 15
+            minutes.
+          </Notice>
         ) : (
           <>
             <p class="muted">We email you a one-time sign-in link. No password needed.</p>
@@ -57,9 +67,15 @@ authRoutes.post('/login', async (c) => {
   if (!parsed.success) throw new HTTPException(400, { message: 'Enter a valid email address.' });
   const email = parsed.data.email.trim().toLowerCase();
   const ip = await clientIpHash(c);
-  const byEmail = await hit(c.env.DB, `login:email:${await sha256Hex(email)}`, LOGIN_LIMITS.perHourPerEmail, HOUR);
+  const byEmail = await hit(
+    c.env.DB,
+    `login:email:${await sha256Hex(email)}`,
+    LOGIN_LIMITS.perHourPerEmail,
+    HOUR,
+  );
   const byIp = await hit(c.env.DB, `login:ip:${ip}`, LOGIN_LIMITS.perHourPerIp, HOUR);
-  if (!byIp.allowed) throw new HTTPException(429, { message: 'Too many sign-in requests. Please try again in an hour.' });
+  if (!byIp.allowed)
+    throw new HTTPException(429, { message: 'Too many sign-in requests. Please try again in an hour.' });
   // Same response whether or not the address exists or is rate limited per email.
   if (byEmail.allowed) {
     const token = await createLoginToken(c.env.DB, email, ip);
@@ -75,7 +91,8 @@ authRoutes.post('/login', async (c) => {
 authRoutes.get('/auth/verify', async (c) => {
   const env = c.var.env;
   const token = c.req.query('token') ?? '';
-  if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) throw new HTTPException(400, { message: 'This sign-in link is invalid.' });
+  if (!/^[A-Za-z0-9_-]{20,100}$/.test(token))
+    throw new HTTPException(400, { message: 'This sign-in link is invalid.' });
   const user = await consumeLoginToken(c.env.DB, token, adminEmails(env));
   if (!user) {
     return c.html(

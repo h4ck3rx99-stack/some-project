@@ -9,7 +9,17 @@
 import { Hono } from 'hono';
 import { fixture } from '../fixtures';
 
-export const VARIANTS = ['good', 'outdated', 'broken-profile', 'no-ucp', 'price-mismatch', 'blocks-robots', 'slow', 'redirect-loop', 'redirect-to-private'] as const;
+export const VARIANTS = [
+  'good',
+  'outdated',
+  'broken-profile',
+  'no-ucp',
+  'price-mismatch',
+  'blocks-robots',
+  'slow',
+  'redirect-loop',
+  'redirect-to-private',
+] as const;
 export type Variant = (typeof VARIANTS)[number];
 
 const overrides = new Map<string, Variant>();
@@ -40,7 +50,11 @@ const PRODUCT_PAGES: Record<string, string> = {
   'merino-tee': 'pages/product.variants.html',
 };
 
-const JSON_HEADERS = { 'content-type': 'application/json', 'cache-control': 'public, max-age=300', etag: '"v1"' };
+const JSON_HEADERS = {
+  'content-type': 'application/json',
+  'cache-control': 'public, max-age=300',
+  etag: '"v1"',
+};
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export const mockStore = new Hono();
@@ -62,7 +76,8 @@ mockStore.use('*', async (c, next) => {
   if (new URL(c.req.url).protocol === 'http:' && !c.req.header('x-mock-host')) {
     return c.redirect(c.req.url.replace(/^http:/, 'https:'), 301);
   }
-  if (c.req.header('x-mock-proto') === 'http') return c.redirect(`https://${hostOf(c.req.raw)}${new URL(c.req.url).pathname}`, 301);
+  if (c.req.header('x-mock-proto') === 'http')
+    return c.redirect(`https://${hostOf(c.req.raw)}${new URL(c.req.url).pathname}`, 301);
   await next();
 });
 
@@ -73,7 +88,9 @@ mockStore.get('/.well-known/ucp', async (c) => {
     case 'no-ucp':
       return c.text('Not Found', 404);
     case 'broken-profile':
-      return c.body(`{"ucp": {"version": "2026-08-25", "services": {,}}`, 200, { 'content-type': 'text/html' });
+      return c.body(`{"ucp": {"version": "2026-08-25", "services": {,}}`, 200, {
+        'content-type': 'text/html',
+      });
     case 'outdated':
       return c.body(fixture('ucp/2026-08-25/profile.previous-version.json', host), 200, JSON_HEADERS);
     case 'slow':
@@ -98,7 +115,8 @@ mockStore.get('/ucp/mcp', (c) => c.text('Method Not Allowed', 405));
 
 mockStore.post('/ucp/v1/catalog/search', async (c) => {
   const host = hostOf(c.req.raw);
-  if (!c.req.header('ucp-agent')) return c.json({ code: 'invalid_request', content: 'UCP-Agent header required' }, 400);
+  if (!c.req.header('ucp-agent'))
+    return c.json({ code: 'invalid_request', content: 'UCP-Agent header required' }, 400);
   const v = variantOf(host);
   const file = v === 'price-mismatch' ? 'catalog.search.price-mismatch.json' : 'catalog.search.valid.json';
   return c.body(fixture(`ucp/2026-08-25/${file}`, host), 200, { 'content-type': 'application/json' });
@@ -107,13 +125,19 @@ mockStore.post('/ucp/v1/catalog/search', async (c) => {
 mockStore.post('/ucp/v1/checkout-sessions', async (c) => {
   const host = hostOf(c.req.raw);
   const body = (await c.req.json().catch(() => null)) as { line_items?: { item?: { id?: string } }[] } | null;
-  if (!body?.line_items?.[0]?.item?.id) return c.json({ code: 'invalid_request', content: 'line_items required' }, 400);
-  return c.body(fixture('ucp/2026-08-25/checkout.session.valid.json', host), 201, { 'content-type': 'application/json' });
+  if (!body?.line_items?.[0]?.item?.id)
+    return c.json({ code: 'invalid_request', content: 'line_items required' }, 400);
+  return c.body(fixture('ucp/2026-08-25/checkout.session.valid.json', host), 201, {
+    'content-type': 'application/json',
+  });
 });
 mockStore.post('/ucp/v1/checkout-sessions/:id/cancel', (c) => {
   const host = hostOf(c.req.raw);
   cancelled.add(`${host}/${c.req.param('id')}`);
-  const s = JSON.parse(fixture('ucp/2026-08-25/checkout.session.valid.json', host)) as Record<string, unknown>;
+  const s = JSON.parse(fixture('ucp/2026-08-25/checkout.session.valid.json', host)) as Record<
+    string,
+    unknown
+  >;
   s.status = 'canceled';
   return c.json(s);
 });
@@ -124,8 +148,14 @@ mockStore.get('/robots.txt', (c) => {
   if (v === 'redirect-to-private') return c.redirect('https://10.0.0.1/robots.txt', 302);
   return c.text(fixture(v === 'blocks-robots' ? 'robots/blocks-products.txt' : 'robots/allow-all.txt', host));
 });
-mockStore.get('/sitemap_index.xml', (c) => c.body(fixture('sitemaps/index.xml', hostOf(c.req.raw)), 200, { 'content-type': 'application/xml' }));
-mockStore.get('/product-sitemap.xml', (c) => c.body(fixture('sitemaps/product-sitemap.xml', hostOf(c.req.raw)), 200, { 'content-type': 'application/xml' }));
+mockStore.get('/sitemap_index.xml', (c) =>
+  c.body(fixture('sitemaps/index.xml', hostOf(c.req.raw)), 200, { 'content-type': 'application/xml' }),
+);
+mockStore.get('/product-sitemap.xml', (c) =>
+  c.body(fixture('sitemaps/product-sitemap.xml', hostOf(c.req.raw)), 200, {
+    'content-type': 'application/xml',
+  }),
+);
 
 mockStore.get('/product/:handle', async (c) => {
   const host = hostOf(c.req.raw);
@@ -141,7 +171,9 @@ mockStore.get('/', async (c) => {
   if (v === 'redirect-loop') return c.redirect('/home', 302);
   if (v === 'redirect-to-private') return c.redirect('https://192.168.1.1/', 302);
   if (v === 'slow') await sleep(1900);
-  return c.html('<!doctype html><html><head><title>Example Outdoor | Running Shoes &amp; Jackets</title></head><body><h1>Example Outdoor</h1></body></html>');
+  return c.html(
+    '<!doctype html><html><head><title>Example Outdoor | Running Shoes &amp; Jackets</title></head><body><h1>Example Outdoor</h1></body></html>',
+  );
 });
 mockStore.get('/home', (c) => c.redirect('/', 302));
 

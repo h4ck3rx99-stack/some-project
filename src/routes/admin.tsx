@@ -15,7 +15,8 @@ adminRoutes.use('*', async (c, next) => {
   await next();
 });
 
-const t = (ms: number | null | undefined) => (ms ? new Date(ms).toISOString().replace('T', ' ').slice(0, 16) : '–');
+const t = (ms: number | null | undefined) =>
+  ms ? new Date(ms).toISOString().replace('T', ' ').slice(0, 16) : '–';
 
 function Page(p: { c: Ctx; title: string; children?: unknown }) {
   return (
@@ -30,11 +31,29 @@ function Page(p: { c: Ctx; title: string; children?: unknown }) {
 
 adminRoutes.get('/', async (c) => {
   const db = getDb(c.env.DB);
-  const accounts = await db.select().from(schema.accounts).orderBy(desc(schema.accounts.createdAt)).limit(100);
+  const accounts = await db
+    .select()
+    .from(schema.accounts)
+    .orderBy(desc(schema.accounts.createdAt))
+    .limit(100);
   const scans = await db.select().from(schema.scans).orderBy(desc(schema.scans.createdAt)).limit(30);
-  const failedJobs = await db.select().from(schema.scanJobs).where(isNotNull(schema.scanJobs.lastError)).orderBy(desc(schema.scanJobs.updatedAt)).limit(30);
-  const alertFailures = await db.select().from(schema.alerts).where(eq(schema.alerts.status, 'failed')).orderBy(desc(schema.alerts.sentAt)).limit(30);
-  const hookErrors = await db.select().from(schema.webhookEvents).where(isNotNull(schema.webhookEvents.error)).limit(30);
+  const failedJobs = await db
+    .select()
+    .from(schema.scanJobs)
+    .where(isNotNull(schema.scanJobs.lastError))
+    .orderBy(desc(schema.scanJobs.updatedAt))
+    .limit(30);
+  const alertFailures = await db
+    .select()
+    .from(schema.alerts)
+    .where(eq(schema.alerts.status, 'failed'))
+    .orderBy(desc(schema.alerts.sentAt))
+    .limit(30);
+  const hookErrors = await db
+    .select()
+    .from(schema.webhookEvents)
+    .where(isNotNull(schema.webhookEvents.error))
+    .limit(30);
   return c.html(
     <Page c={c} title="Admin">
       <h1>Admin</h1>
@@ -71,7 +90,14 @@ adminRoutes.get('/', async (c) => {
                         </option>
                       ))}
                     </select>
-                    <input type="date" name="period_end" aria-label="Period end" value={a.currentPeriodEnd ? new Date(a.currentPeriodEnd).toISOString().slice(0, 10) : ''} />
+                    <input
+                      type="date"
+                      name="period_end"
+                      aria-label="Period end"
+                      value={
+                        a.currentPeriodEnd ? new Date(a.currentPeriodEnd).toISOString().slice(0, 10) : ''
+                      }
+                    />
                     <button type="submit">Save</button>
                   </form>
                 </td>
@@ -189,7 +215,12 @@ adminRoutes.post('/accounts/:id/plan', async (c) => {
     .update(schema.accounts)
     .set({ plan: f.data.plan, status: f.data.status, currentPeriodEnd: periodEnd, billingProvider: 'manual' })
     .where(eq(schema.accounts.id, c.req.param('id')));
-  await audit(c.env.DB, 'admin.plan_override', { plan: f.data.plan, status: f.data.status, periodEnd }, { accountId: c.req.param('id'), userId: admin.id });
+  await audit(
+    c.env.DB,
+    'admin.plan_override',
+    { plan: f.data.plan, status: f.data.status, periodEnd },
+    { accountId: c.req.param('id'), userId: admin.id },
+  );
   return c.redirect('/admin', 303);
 });
 
@@ -213,8 +244,16 @@ adminRoutes.get('/health', async (c) => {
   } catch {
     dbOk = false;
   }
-  const backlog = await db.select({ n: sql<number>`count(*)` }).from(schema.scanJobs).where(lte(schema.scanJobs.runAfter, now));
-  const oldest = await db.select({ createdAt: schema.scanJobs.createdAt }).from(schema.scanJobs).where(isNull(schema.scanJobs.lockedUntil)).orderBy(asc(schema.scanJobs.createdAt)).limit(1);
+  const backlog = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(schema.scanJobs)
+    .where(lte(schema.scanJobs.runAfter, now));
+  const oldest = await db
+    .select({ createdAt: schema.scanJobs.createdAt })
+    .from(schema.scanJobs)
+    .where(isNull(schema.scanJobs.lockedUntil))
+    .orderBy(asc(schema.scanJobs.createdAt))
+    .limit(1);
   const crons = await db.select().from(schema.cronRuns);
   return c.html(
     <Page c={c} title="Health">
@@ -222,7 +261,9 @@ adminRoutes.get('/health', async (c) => {
       <div class="card">
         <p>Database: {dbOk ? 'ok' : 'error'}</p>
         <p>Job backlog (due now): {backlog[0]?.n ?? 0}</p>
-        <p>Oldest queued job: {oldest[0] ? `${Math.round((now - oldest[0].createdAt) / 1000)} s old` : 'none'}</p>
+        <p>
+          Oldest queued job: {oldest[0] ? `${Math.round((now - oldest[0].createdAt) / 1000)} s old` : 'none'}
+        </p>
       </div>
       <div class="card table-wrap">
         <table>

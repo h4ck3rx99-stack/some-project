@@ -15,7 +15,15 @@ describe('engine against mock store variants', () => {
     expect(r.status('checkout.session_create')).toBe('skip');
     expect(r.score.score).toBe(100);
     expect(r.score.grade).toBe('Agent-ready');
-    expect(r.phases).toEqual(['discovery', 'catalog', 'products:0', 'consistency', 'basics', 'checkout', 'finalize']);
+    expect(r.phases).toEqual([
+      'discovery',
+      'catalog',
+      'products:0',
+      'consistency',
+      'basics',
+      'checkout',
+      'finalize',
+    ]);
     expect(Object.keys(r.results).sort()).toEqual(CHECKS.map((c) => c.id).sort());
     expect(r.state.sampled).toHaveLength(3);
   });
@@ -46,7 +54,7 @@ describe('engine against mock store variants', () => {
     const cat = r.score.categories.find((c) => c.category === 'catalog')!;
     expect(cat.score).toBeNull();
     expect(r.score.score).toBe(39);
-    expect(r.score.cappedBy).toBe("discovery.profile_reachable");
+    expect(r.score.cappedBy).toBe('discovery.profile_reachable');
   });
 
   it('price-mismatch store: price check fails with evidence', async () => {

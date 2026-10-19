@@ -33,7 +33,15 @@ export function createContext(input: ScanInput, state: ScanState, deps: ContextD
     },
     deps.sleep,
   );
-  return { ...input, http, state, appUrl: deps.appUrl, userAgent, now: deps.now ?? (() => Date.now()), capture: deps.capture };
+  return {
+    ...input,
+    http,
+    state,
+    appUrl: deps.appUrl,
+    userAgent,
+    now: deps.now ?? (() => Date.now()),
+    capture: deps.capture,
+  };
 }
 
 /** Normalise user input to an https origin. Returns null when it is not a usable store URL. */

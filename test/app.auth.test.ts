@@ -18,7 +18,9 @@ describe('magic link auth', () => {
     expect(a.headers.get('location')).toBe('/login?sent=1');
     expect(b.headers.get('location')).toBe('/login?sent=1');
     // No user is created until the link is used.
-    const u = await getDb(env.DB).query.users.findFirst({ where: eq(schema.users.email, 'new-person@example.com') });
+    const u = await getDb(env.DB).query.users.findFirst({
+      where: eq(schema.users.email, 'new-person@example.com'),
+    });
     expect(u).toBeUndefined();
   });
 
@@ -45,7 +47,10 @@ describe('magic link auth', () => {
   it('rate limits login requests per IP', async () => {
     const statuses: number[] = [];
     for (let i = 0; i < 6; i++) {
-      const r = await req('/login', { ...form({ email: `x${i}@example.com` }), headers: { 'content-type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': '198.51.100.99' } });
+      const r = await req('/login', {
+        ...form({ email: `x${i}@example.com` }),
+        headers: { 'content-type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': '198.51.100.99' },
+      });
       statuses.push(r.status);
     }
     expect(statuses).toEqual([303, 303, 303, 303, 303, 429]);
@@ -53,7 +58,14 @@ describe('magic link auth', () => {
 
   it('rate limits login emails per address silently (5/hour)', async () => {
     const before = consoleOutbox.filter((m) => m.to === 'spam-me@example.com').length;
-    for (let i = 0; i < 7; i++) await req('/login', { ...form({ email: 'spam-me@example.com' }), headers: { 'content-type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': `198.51.100.${i + 10}` } });
+    for (let i = 0; i < 7; i++)
+      await req('/login', {
+        ...form({ email: 'spam-me@example.com' }),
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+          'cf-connecting-ip': `198.51.100.${i + 10}`,
+        },
+      });
     expect(consoleOutbox.filter((m) => m.to === 'spam-me@example.com').length - before).toBe(5);
   });
 
@@ -70,9 +82,15 @@ describe('magic link auth', () => {
     expect(anon.headers.get('location')).toBe('/login?next=%2Fapp');
     const c = await login('csrf@example.com');
     await setPlan(c.accountId, 'store');
-    const noToken = await req('/app/stores/new', { ...form({ url: 'good.mockstore.test' }), cookie: c.cookie });
+    const noToken = await req('/app/stores/new', {
+      ...form({ url: 'good.mockstore.test' }),
+      cookie: c.cookie,
+    });
     expect(noToken.status).toBe(403);
-    const badToken = await req('/app/stores/new', { ...form({ url: 'good.mockstore.test', _csrf: 'nope' }), cookie: c.cookie });
+    const badToken = await req('/app/stores/new', {
+      ...form({ url: 'good.mockstore.test', _csrf: 'nope' }),
+      cookie: c.cookie,
+    });
     expect(badToken.status).toBe(403);
     const ok = await post(c, '/app/stores/new', { url: 'good.mockstore.test' });
     expect(ok.status).toBe(303);

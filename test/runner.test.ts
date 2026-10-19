@@ -2,17 +2,36 @@ import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { env } from 'cloudflare:workers';
 import { getDb, schema } from '../src/db/client';
-import { advanceJob, claimJob, drainJobs, dueJobs, LEASE_MS, MAX_ATTEMPTS, type RunnerDeps } from '../src/jobs/runner';
+import {
+  advanceJob,
+  claimJob,
+  drainJobs,
+  dueJobs,
+  LEASE_MS,
+  MAX_ATTEMPTS,
+  type RunnerDeps,
+} from '../src/jobs/runner';
 import { createScan } from '../src/services/scans';
 import { mockFetch } from './helpers';
 
 function deps(over: Partial<RunnerDeps> = {}): RunnerDeps {
-  return { d1: env.DB, appUrl: 'https://cartprobe.test', appDomain: 'cartprobe.test', allowTestTld: true, fetchImpl: mockFetch, sleep: async () => undefined, ...over };
+  return {
+    d1: env.DB,
+    appUrl: 'https://cartprobe.test',
+    appDomain: 'cartprobe.test',
+    allowTestTld: true,
+    fetchImpl: mockFetch,
+    sleep: async () => undefined,
+    ...over,
+  };
 }
 
-const newScan = (domain: string) => createScan(env.DB, { url: `https://${domain}`, domain, trigger: 'anonymous', productsSampled: 30 });
-const jobOf = async (scanId: string) => getDb(env.DB).query.scanJobs.findFirst({ where: eq(schema.scanJobs.scanId, scanId) });
-const scanOf = async (id: string) => (await getDb(env.DB).query.scans.findFirst({ where: eq(schema.scans.id, id) }))!;
+const newScan = (domain: string) =>
+  createScan(env.DB, { url: `https://${domain}`, domain, trigger: 'anonymous', productsSampled: 30 });
+const jobOf = async (scanId: string) =>
+  getDb(env.DB).query.scanJobs.findFirst({ where: eq(schema.scanJobs.scanId, scanId) });
+const scanOf = async (id: string) =>
+  (await getDb(env.DB).query.scans.findFirst({ where: eq(schema.scans.id, id) }))!;
 
 describe('job runner', () => {
   it('progresses phase by phase and persists state between invocations', async () => {
@@ -28,7 +47,15 @@ describe('job runner', () => {
       // A clock that ticks on every read + a 1 ms budget → exactly one phase per invocation.
       await advanceJob(deps({ now: () => (clock += 2) }), lease!, 1);
     }
-    expect(seen).toEqual(['discovery', 'catalog', 'products:0', 'consistency', 'basics', 'checkout', 'finalize']);
+    expect(seen).toEqual([
+      'discovery',
+      'catalog',
+      'products:0',
+      'consistency',
+      'basics',
+      'checkout',
+      'finalize',
+    ]);
     const s = await scanOf(scan.id);
     expect(s.status).toBe('done');
     expect(s.score).toBe(100);
@@ -59,7 +86,11 @@ describe('job runner', () => {
   it('after max attempts a failing phase is marked error and the scan still finishes', async () => {
     const scan = await newScan('flaky.mockstore.test');
     // An R2 bucket that always throws makes the discovery phase fail (infrastructure error).
-    const broken = { put: async () => { throw new Error('R2 unavailable'); } } as unknown as R2Bucket;
+    const broken = {
+      put: async () => {
+        throw new Error('R2 unavailable');
+      },
+    } as unknown as R2Bucket;
     let clock = Date.now();
     for (let i = 0; i < MAX_ATTEMPTS + 1; i++) {
       const job = (await jobOf(scan.id))!;
@@ -74,15 +105,36 @@ describe('job runner', () => {
     await drainJobs(deps({ now: () => clock }), 10, 60_000);
     const s = await scanOf(scan.id);
     expect(s.status).toBe('done');
-    const r = await getDb(env.DB).query.checkResults.findFirst({ where: eq(schema.checkResults.id, `${scan.id}:discovery.profile_reachable`) });
+    const r = await getDb(env.DB).query.checkResults.findFirst({
+      where: eq(schema.checkResults.id, `${scan.id}:discovery.profile_reachable`),
+    });
     expect(r?.status).toBe('error');
     expect(r?.evidenceJson).toContain('R2 unavailable');
   });
 
   it('migrations created every table', async () => {
-    const rows = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all<{ name: string }>();
+    const rows = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all<{
+      name: string;
+    }>();
     const names = rows.results.map((r) => r.name);
-    for (const t of ['users', 'login_tokens', 'sessions', 'accounts', 'account_members', 'stores', 'scans', 'check_results', 'scan_jobs', 'alert_channels', 'alerts', 'api_keys', 'webhook_events', 'rate_limits', 'audit_log', 'cron_runs']) {
+    for (const t of [
+      'users',
+      'login_tokens',
+      'sessions',
+      'accounts',
+      'account_members',
+      'stores',
+      'scans',
+      'check_results',
+      'scan_jobs',
+      'alert_channels',
+      'alerts',
+      'api_keys',
+      'webhook_events',
+      'rate_limits',
+      'audit_log',
+      'cron_runs',
+    ]) {
       expect(names).toContain(t);
     }
   });

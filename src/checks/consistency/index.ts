@@ -37,13 +37,21 @@ export function matchPairs(ctx: ScanContext): MatchedPair[] {
 }
 
 function noPairs(ctx: ScanContext) {
-  if (!(ctx.state.catalog?.products.length ?? 0)) return skip('The catalog search returned no products to compare with your product pages.');
-  if (!(ctx.state.productPages ?? []).some((p) => p.products.length)) return skip('No sampled page had Product structured data to compare with the catalog.');
+  if (!(ctx.state.catalog?.products.length ?? 0))
+    return skip('The catalog search returned no products to compare with your product pages.');
+  if (!(ctx.state.productPages ?? []).some((p) => p.products.length))
+    return skip('No sampled page had Product structured data to compare with the catalog.');
   return null;
 }
 
-const pageCurrencies = (p: ExtractedProduct) => new Set(p.offers.map((o) => o.priceCurrency?.toUpperCase()).filter((x): x is string => !!x));
-const catalogCurrencies = (c: CatalogProduct) => new Set(c.variants.map((v) => (typeof v.currency === 'string' ? v.currency.toUpperCase() : undefined)).filter((x): x is string => !!x));
+const pageCurrencies = (p: ExtractedProduct) =>
+  new Set(p.offers.map((o) => o.priceCurrency?.toUpperCase()).filter((x): x is string => !!x));
+const catalogCurrencies = (c: CatalogProduct) =>
+  new Set(
+    c.variants
+      .map((v) => (typeof v.currency === 'string' ? v.currency.toUpperCase() : undefined))
+      .filter((x): x is string => !!x),
+  );
 
 export const consistencyChecks: CheckDefinition[] = [
   {
@@ -58,7 +66,8 @@ export const consistencyChecks: CheckDefinition[] = [
       const np = noPairs(ctx);
       if (np) return np;
       const pairs = matchPairs(ctx);
-      if (!pairs.length) return skip('No product appeared both in the catalog response and among sampled pages.');
+      if (!pairs.length)
+        return skip('No product appeared both in the catalog response and among sampled pages.');
       const mismatches: { url: string; page: string; catalog: string }[] = [];
       let compared = 0;
       for (const { url, catalog, page } of pairs) {
@@ -66,23 +75,47 @@ export const consistencyChecks: CheckDefinition[] = [
         if (!pageOffer) continue;
         const currency = pageOffer.priceCurrency!.toUpperCase();
         const pageMinor = decimalToMinor(pageOffer.price ?? pageOffer.lowPrice!, currency);
-        const amounts = catalog.variants.filter((v) => typeof v.currency === 'string' && v.currency.toUpperCase() === currency && Number.isInteger(v.amount)).map((v) => v.amount as number);
+        const amounts = catalog.variants
+          .filter(
+            (v) =>
+              typeof v.currency === 'string' &&
+              v.currency.toUpperCase() === currency &&
+              Number.isInteger(v.amount),
+          )
+          .map((v) => v.amount as number);
         if (pageMinor === null || amounts.length === 0) continue;
         compared++;
         // Single price: must equal some variant price. Price range (lowPrice): must equal the lowest variant price.
-        const ok = pageOffer.price !== undefined ? amounts.includes(pageMinor) : Math.min(...amounts) === pageMinor;
+        const ok =
+          pageOffer.price !== undefined ? amounts.includes(pageMinor) : Math.min(...amounts) === pageMinor;
         if (!ok) {
           mismatches.push({
             url,
             page: `${pageOffer.price ?? `from ${pageOffer.lowPrice}`} ${currency}`,
-            catalog: amounts.slice(0, 5).map((a) => formatMinor(a, currency)).join(', '),
+            catalog: amounts
+              .slice(0, 5)
+              .map((a) => formatMinor(a, currency))
+              .join(', '),
           });
         }
       }
       if (compared === 0) return skip('Matched products had no comparable price in the same currency.');
-      const ev = mismatches.slice(0, 10).map((m) => ({ label: 'Price mismatch', url: m.url, expected: `page price: ${truncate(m.page, 60)}`, found: `catalog: ${truncate(m.catalog, 120)}` }));
-      if (mismatches.length) return result('fail', `${mismatches.length} of ${compared} products have a different price in the catalog API than on the product page.`, ev);
-      return result('pass', `Prices match exactly for all ${compared} products found in both the catalog and on product pages.`);
+      const ev = mismatches.slice(0, 10).map((m) => ({
+        label: 'Price mismatch',
+        url: m.url,
+        expected: `page price: ${truncate(m.page, 60)}`,
+        found: `catalog: ${truncate(m.catalog, 120)}`,
+      }));
+      if (mismatches.length)
+        return result(
+          'fail',
+          `${mismatches.length} of ${compared} products have a different price in the catalog API than on the product page.`,
+          ev,
+        );
+      return result(
+        'pass',
+        `Prices match exactly for all ${compared} products found in both the catalog and on product pages.`,
+      );
     },
   },
   {
@@ -99,16 +132,35 @@ export const consistencyChecks: CheckDefinition[] = [
       const bad: { url: string; page: string; catalog: string }[] = [];
       let compared = 0;
       for (const { url, catalog, page } of matchPairs(ctx)) {
-        const pageVals = page.offers.map((o) => availabilityIsInStock(o.availability)).filter((x): x is boolean => x !== null);
-        const catVals = catalog.variants.map((v) => v.available).filter((x): x is boolean => typeof x === 'boolean');
+        const pageVals = page.offers
+          .map((o) => availabilityIsInStock(o.availability))
+          .filter((x): x is boolean => x !== null);
+        const catVals = catalog.variants
+          .map((v) => v.available)
+          .filter((x): x is boolean => typeof x === 'boolean');
         if (!pageVals.length || !catVals.length) continue;
         compared++;
         const pageIn = pageVals.includes(true);
         const catIn = catVals.includes(true);
-        if (pageIn !== catIn) bad.push({ url, page: pageIn ? 'in stock' : 'out of stock', catalog: catIn ? 'available' : 'not available' });
+        if (pageIn !== catIn)
+          bad.push({
+            url,
+            page: pageIn ? 'in stock' : 'out of stock',
+            catalog: catIn ? 'available' : 'not available',
+          });
       }
       if (compared === 0) return skip('Matched products did not state availability in both places.');
-      if (bad.length) return result('fail', `${bad.length} of ${compared} products disagree on availability between the catalog and the page.`, bad.slice(0, 10).map((b) => ({ label: 'Availability mismatch', url: b.url, expected: `page: ${b.page}`, found: `catalog: ${b.catalog}` })));
+      if (bad.length)
+        return result(
+          'fail',
+          `${bad.length} of ${compared} products disagree on availability between the catalog and the page.`,
+          bad.slice(0, 10).map((b) => ({
+            label: 'Availability mismatch',
+            url: b.url,
+            expected: `page: ${b.page}`,
+            found: `catalog: ${b.catalog}`,
+          })),
+        );
       return result('pass', `Availability agrees for all ${compared} compared products.`);
     },
   },
@@ -130,10 +182,21 @@ export const consistencyChecks: CheckDefinition[] = [
         const c = catalogCurrencies(catalog);
         if (!p.size || !c.size) continue;
         compared++;
-        if (![...p].some((x) => c.has(x))) bad.push({ url, page: [...p].join(', '), catalog: [...c].join(', ') });
+        if (![...p].some((x) => c.has(x)))
+          bad.push({ url, page: [...p].join(', '), catalog: [...c].join(', ') });
       }
       if (compared === 0) return skip('Matched products did not state a currency in both places.');
-      if (bad.length) return result('fail', `${bad.length} of ${compared} products use a different currency in the catalog than on the page.`, bad.slice(0, 10).map((b) => ({ label: 'Currency mismatch', url: b.url, expected: `page: ${truncate(b.page, 40)}`, found: `catalog: ${truncate(b.catalog, 40)}` })));
+      if (bad.length)
+        return result(
+          'fail',
+          `${bad.length} of ${compared} products use a different currency in the catalog than on the page.`,
+          bad.slice(0, 10).map((b) => ({
+            label: 'Currency mismatch',
+            url: b.url,
+            expected: `page: ${truncate(b.page, 40)}`,
+            found: `catalog: ${truncate(b.catalog, 40)}`,
+          })),
+        );
       return result('pass', `Currencies agree for all ${compared} compared products.`);
     },
   },

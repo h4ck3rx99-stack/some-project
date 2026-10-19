@@ -83,21 +83,31 @@ function toMs(v: number | string | null | undefined): number | null | undefined 
   return Number.isNaN(t) ? undefined : t;
 }
 
-export function webhookBilling(opts: { secret: string; checkoutUrls: Partial<Record<PlanId, string>> }): BillingProvider {
+export function webhookBilling(opts: {
+  secret: string;
+  checkoutUrls: Partial<Record<PlanId, string>>;
+}): BillingProvider {
   return {
     name: 'webhook',
     async parseWebhook(rawBody, headers, now = Date.now()) {
       const id = headers.get('webhook-id') ?? '';
       const ts = headers.get('webhook-timestamp') ?? '';
       const sigHeader = headers.get('webhook-signature') ?? '';
-      if (!id || !/^\d{1,12}$/.test(ts) || !sigHeader) return { ok: false, status: 400, error: 'missing webhook-id, webhook-timestamp or webhook-signature' };
-      if (Math.abs(now / 1000 - Number(ts)) > TIMESTAMP_TOLERANCE_S) return { ok: false, status: 400, error: 'timestamp outside tolerance' };
+      if (!id || !/^\d{1,12}$/.test(ts) || !sigHeader)
+        return {
+          ok: false,
+          status: 400,
+          error: 'missing webhook-id, webhook-timestamp or webhook-signature',
+        };
+      if (Math.abs(now / 1000 - Number(ts)) > TIMESTAMP_TOLERANCE_S)
+        return { ok: false, status: 400, error: 'timestamp outside tolerance' };
       const expected = await hmacHex(opts.secret, `${id}.${ts}.${rawBody}`);
       const provided = sigHeader
         .split(/[\s,]+/)
         .map((p) => p.replace(/^v1=/, ''))
         .filter(Boolean);
-      if (!provided.some((p) => timingSafeEqual(p, expected))) return { ok: false, status: 401, error: 'invalid signature' };
+      if (!provided.some((p) => timingSafeEqual(p, expected)))
+        return { ok: false, status: 401, error: 'invalid signature' };
       let parsed: z.infer<typeof bodySchema>;
       try {
         parsed = bodySchema.parse(JSON.parse(rawBody));

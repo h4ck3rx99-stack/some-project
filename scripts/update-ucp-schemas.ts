@@ -28,7 +28,9 @@ if (flag === '--from' && fromDir) {
   src = resolve(fromDir);
 } else {
   cleanup = mkdtempSync(join(tmpdir(), 'ucp-'));
-  execFileSync('git', ['clone', '--depth', '1', '--branch', `v${version}`, REPO, cleanup], { stdio: 'inherit' });
+  execFileSync('git', ['clone', '--depth', '1', '--branch', `v${version}`, REPO, cleanup], {
+    stdio: 'inherit',
+  });
   src = cleanup;
 }
 

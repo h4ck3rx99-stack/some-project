@@ -44,9 +44,28 @@ const rows: Row[] = [];
 const csv = (v: unknown) => `"${String(v).replace(/"/g, '""')}"`;
 
 async function probe(o: { origin: string; domain: string }): Promise<Row> {
-  const r = await safeFetch(`${o.origin}/.well-known/ucp`, { accept: 'application/json', maxRedirects: 0, maxBytes: 1_000_000, timeoutMs: 8000, userAgent: userAgentFor(appDomain) });
-  const base = { domain: o.domain, http_status: r.error ? r.error.kind : r.status, has_profile: false, valid: false, version: '', version_status: '', capabilities: '', error: r.error?.message ?? '' };
-  if (!r.ok || !r.bodyText) return { ...base, error: base.error || (r.status >= 300 && r.status < 400 ? 'redirect' : `HTTP ${r.status}`) };
+  const r = await safeFetch(`${o.origin}/.well-known/ucp`, {
+    accept: 'application/json',
+    maxRedirects: 0,
+    maxBytes: 1_000_000,
+    timeoutMs: 8000,
+    userAgent: userAgentFor(appDomain),
+  });
+  const base = {
+    domain: o.domain,
+    http_status: r.error ? r.error.kind : r.status,
+    has_profile: false,
+    valid: false,
+    version: '',
+    version_status: '',
+    capabilities: '',
+    error: r.error?.message ?? '',
+  };
+  if (!r.ok || !r.bodyText)
+    return {
+      ...base,
+      error: base.error || (r.status >= 300 && r.status < 400 ? 'redirect' : `HTTP ${r.status}`),
+    };
   let json: unknown;
   try {
     json = JSON.parse(r.bodyText);
@@ -76,8 +95,19 @@ async function main() {
     }
   });
   await Promise.all(workers);
-  const cols: (keyof Row)[] = ['domain', 'http_status', 'has_profile', 'valid', 'version', 'version_status', 'capabilities', 'error'];
-  process.stdout.write(cols.join(',') + '\n' + rows.map((r) => cols.map((c) => csv(r[c])).join(',')).join('\n') + '\n');
+  const cols: (keyof Row)[] = [
+    'domain',
+    'http_status',
+    'has_profile',
+    'valid',
+    'version',
+    'version_status',
+    'capabilities',
+    'error',
+  ];
+  process.stdout.write(
+    cols.join(',') + '\n' + rows.map((r) => cols.map((c) => csv(r[c])).join(',')).join('\n') + '\n',
+  );
   const n = (f: (r: Row) => boolean) => rows.filter(f).length;
   console.error(
     [

@@ -23,28 +23,51 @@ export interface AlertDeps {
 }
 
 async function snapshot(d1: D1Database, scan: typeof schema.scans.$inferSelect): Promise<ScanSnapshot> {
-  const rows = await getDb(d1).select({ checkId: schema.checkResults.checkId, status: schema.checkResults.status }).from(schema.checkResults).where(eq(schema.checkResults.scanId, scan.id));
-  return { score: scan.score ?? 0, specVersionSeen: scan.specVersionSeen, statuses: Object.fromEntries(rows.map((r) => [r.checkId, r.status as CheckStatus])) };
+  const rows = await getDb(d1)
+    .select({ checkId: schema.checkResults.checkId, status: schema.checkResults.status })
+    .from(schema.checkResults)
+    .where(eq(schema.checkResults.scanId, scan.id));
+  return {
+    score: scan.score ?? 0,
+    specVersionSeen: scan.specVersionSeen,
+    statuses: Object.fromEntries(rows.map((r) => [r.checkId, r.status as CheckStatus])),
+  };
 }
 
 export function channelFor(type: string, deps: AlertDeps): AlertChannel | null {
   if (type === 'email') return emailChannel(deps.email);
-  if (type === 'webhook') return webhookChannel({ signingSecret: deps.signingSecret, fetchImpl: deps.fetchImpl, userAgent: deps.userAgent });
+  if (type === 'webhook')
+    return webhookChannel({
+      signingSecret: deps.signingSecret,
+      fetchImpl: deps.fetchImpl,
+      userAgent: deps.userAgent,
+    });
   if (type === 'slack') return slackChannel({ fetchImpl: deps.fetchImpl, userAgent: deps.userAgent });
   return null;
 }
 
 /** Send `payload` to every allowed channel of the account; owner email when none is configured. */
-export async function deliver(deps: AlertDeps, accountId: string, payload: AlertPayload, kind: string): Promise<{ sent: number; failed: number }> {
+export async function deliver(
+  deps: AlertDeps,
+  accountId: string,
+  payload: AlertPayload,
+  kind: string,
+): Promise<{ sent: number; failed: number }> {
   const db = getDb(deps.d1);
   const account = await db.query.accounts.findFirst({ where: eq(schema.accounts.id, accountId) });
   if (!account) return { sent: 0, failed: 0 };
   const allowed = planOf(account).alertChannels;
-  const channels = (await db.select().from(schema.alertChannels).where(eq(schema.alertChannels.accountId, accountId))).filter((c) => allowed.includes(c.type));
+  const channels = (
+    await db.select().from(schema.alertChannels).where(eq(schema.alertChannels.accountId, accountId))
+  ).filter((c) => allowed.includes(c.type));
   const targets: { channelId: string | null; type: string; target: string }[] = [];
   for (const c of channels) {
     try {
-      targets.push({ channelId: c.id, type: c.type, target: await decryptSecret(deps.encryptionKey, c.targetEncrypted) });
+      targets.push({
+        channelId: c.id,
+        type: c.type,
+        target: await decryptSecret(deps.encryptionKey, c.targetEncrypted),
+      });
     } catch {
       log.error({ msg: 'could not decrypt alert channel', channel_id: c.id });
     }
@@ -94,13 +117,19 @@ export async function processScanAlerts(deps: AlertDeps, scanId: string): Promis
   const account = await db.query.accounts.findFirst({ where: eq(schema.accounts.id, store.accountId) });
   if (!account || !planOf(account).dailyMonitoring) return [];
 
-  const claimed = await db.update(schema.scans).set({ alertedAt: Date.now() }).where(and(eq(schema.scans.id, scanId), isNull(schema.scans.alertedAt))).returning({ id: schema.scans.id });
+  const claimed = await db
+    .update(schema.scans)
+    .set({ alertedAt: Date.now() })
+    .where(and(eq(schema.scans.id, scanId), isNull(schema.scans.alertedAt)))
+    .returning({ id: schema.scans.id });
   if (!claimed.length) return [];
 
   const prev = await db
     .select()
     .from(schema.scans)
-    .where(and(eq(schema.scans.storeId, store.id), eq(schema.scans.status, 'done'), ne(schema.scans.id, scanId)))
+    .where(
+      and(eq(schema.scans.storeId, store.id), eq(schema.scans.status, 'done'), ne(schema.scans.id, scanId)),
+    )
     .orderBy(desc(schema.scans.finishedAt))
     .limit(2);
   const current = await snapshot(deps.d1, scan);
@@ -113,7 +142,15 @@ export async function processScanAlerts(deps: AlertDeps, scanId: string): Promis
   await deliver(
     deps,
     account.id,
-    { storeId: store.id, storeName: store.name, domain: store.domain, scanId, score: scan.score, reportUrl: `${deps.appUrl}/r/${scan.publicSlug}`, events },
+    {
+      storeId: store.id,
+      storeName: store.name,
+      domain: store.domain,
+      scanId,
+      score: scan.score,
+      reportUrl: `${deps.appUrl}/r/${scan.publicSlug}`,
+      events,
+    },
     events.map((e) => e.kind).join(','),
   );
   return events;

@@ -31,18 +31,31 @@ export function resetApp() {
 }
 
 /** Make a request and wait for every waitUntil() (background scan work) to settle. */
-export async function req(path: string, init: RequestInit & { cookie?: string } = {}, app = defaultApp): Promise<Response> {
+export async function req(
+  path: string,
+  init: RequestInit & { cookie?: string } = {},
+  app = defaultApp,
+): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.cookie) headers.set('cookie', init.cookie);
   if (!headers.has('cf-connecting-ip')) headers.set('cf-connecting-ip', '203.0.113.7');
   const ctx = createExecutionContext();
-  const res = await app.request(`https://cartprobe.test${path}`, { ...init, headers, redirect: 'manual' }, env, ctx);
+  const res = await app.request(
+    `https://cartprobe.test${path}`,
+    { ...init, headers, redirect: 'manual' },
+    env,
+    ctx,
+  );
   await waitOnExecutionContext(ctx);
   return res;
 }
 
 export function form(data: Record<string, string>): RequestInit {
-  return { method: 'POST', body: new URLSearchParams(data), headers: { 'content-type': 'application/x-www-form-urlencoded' } };
+  return {
+    method: 'POST',
+    body: new URLSearchParams(data),
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+  };
 }
 
 export function csrfFrom(html: string): string {
@@ -50,8 +63,14 @@ export function csrfFrom(html: string): string {
 }
 
 let ipCounter = 0;
-export async function login(email: string, ip = `100.64.${Math.floor(++ipCounter / 250)}.${ipCounter % 250}`): Promise<Client> {
-  const r = await req('/login', { ...form({ email }), headers: { 'content-type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': ip } });
+export async function login(
+  email: string,
+  ip = `100.64.${Math.floor(++ipCounter / 250)}.${ipCounter % 250}`,
+): Promise<Client> {
+  const r = await req('/login', {
+    ...form({ email }),
+    headers: { 'content-type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': ip },
+  });
   if (r.status !== 303) throw new Error(`login POST ${r.status}`);
   const mail = [...consoleOutbox].reverse().find((m) => m.to === email);
   const token = /token=([A-Za-z0-9_-]+)/.exec(mail?.text ?? '')?.[1];
@@ -62,12 +81,17 @@ export async function login(email: string, ip = `100.64.${Math.floor(++ipCounter
   const html = await page.text();
   const db = getDb(env.DB);
   const user = (await db.query.users.findFirst({ where: eq(schema.users.email, email) }))!;
-  const member = (await db.query.accountMembers.findFirst({ where: eq(schema.accountMembers.userId, user.id) }))!;
+  const member = (await db.query.accountMembers.findFirst({
+    where: eq(schema.accountMembers.userId, user.id),
+  }))!;
   return { cookie, csrf: csrfFrom(html), email, userId: user.id, accountId: member.accountId };
 }
 
 export async function setPlan(accountId: string, plan: PlanId, status: 'active' | 'cancelled' = 'active') {
-  await getDb(env.DB).update(schema.accounts).set({ plan, status, currentPeriodEnd: null }).where(eq(schema.accounts.id, accountId));
+  await getDb(env.DB)
+    .update(schema.accounts)
+    .set({ plan, status, currentPeriodEnd: null })
+    .where(eq(schema.accounts.id, accountId));
 }
 
 export function post(c: Client, path: string, data: Record<string, string> = {}) {

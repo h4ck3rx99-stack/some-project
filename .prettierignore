@@ -8,3 +8,5 @@ test/fixtures/pages
 migrations
 .wrangler
 package-lock.json
+content/fix
+test/fixtures/**/*.json

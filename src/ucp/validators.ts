@@ -50,7 +50,9 @@ function dedupeErrors(errors: AjvError[]): AjvError[] {
 export function formatAjvError(e: AjvError): string {
   const path = e.instancePath || '(root)';
   let msg = e.message ?? e.keyword;
-  if (e.keyword === 'additionalProperties' && e.params?.additionalProperty) msg += `: ${String(e.params.additionalProperty)}`;
-  if (e.keyword === 'enum' && Array.isArray(e.params?.allowedValues)) msg += `: ${(e.params.allowedValues as unknown[]).join(', ')}`;
+  if (e.keyword === 'additionalProperties' && e.params?.additionalProperty)
+    msg += `: ${String(e.params.additionalProperty)}`;
+  if (e.keyword === 'enum' && Array.isArray(e.params?.allowedValues))
+    msg += `: ${(e.params.allowedValues as unknown[]).join(', ')}`;
   return `${path} ${msg}`;
 }

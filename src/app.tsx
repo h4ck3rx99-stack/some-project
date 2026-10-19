@@ -16,7 +16,8 @@ import { JS } from './views/js';
 import type { FetchLike } from './lib/safeFetch';
 
 export const SECURITY_HEADERS: Record<string, string> = {
-  'content-security-policy': "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+  'content-security-policy':
+    "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'strict-origin-when-cross-origin',
   'x-frame-options': 'DENY',
@@ -44,13 +45,19 @@ export function createApp(opts: AppOptions = {}) {
     c.header('x-request-id', rid);
     // Routes may tighten or extend a header (e.g. the print report's CSP for a logo host); keep theirs.
     for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (!c.res.headers.has(k)) c.header(k, v);
-    if (c.var.env.ENVIRONMENT === 'production') c.header('strict-transport-security', 'max-age=31536000; includeSubDomains');
+    if (c.var.env.ENVIRONMENT === 'production')
+      c.header('strict-transport-security', 'max-age=31536000; includeSubDomains');
   });
 
   // Reject cross-site state-changing browser requests early (defence in depth next to CSRF tokens).
   app.use('*', async (c, next) => {
     const m = c.req.method;
-    if (m !== 'GET' && m !== 'HEAD' && !c.req.path.startsWith('/api/') && !c.req.path.startsWith('/webhooks/')) {
+    if (
+      m !== 'GET' &&
+      m !== 'HEAD' &&
+      !c.req.path.startsWith('/api/') &&
+      !c.req.path.startsWith('/webhooks/')
+    ) {
       const origin = c.req.header('origin');
       if (origin && origin !== 'null' && origin !== new URL(c.var.env.APP_URL).origin) {
         throw new HTTPException(403, { message: 'Cross-site request blocked.' });
@@ -59,8 +66,15 @@ export function createApp(opts: AppOptions = {}) {
     await next();
   });
 
-  app.get('/static/app.css', (c) => c.body(CSS, 200, { 'content-type': 'text/css; charset=utf-8', 'cache-control': 'public, max-age=3600' }));
-  app.get('/static/app.js', (c) => c.body(JS, 200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'public, max-age=3600' }));
+  app.get('/static/app.css', (c) =>
+    c.body(CSS, 200, { 'content-type': 'text/css; charset=utf-8', 'cache-control': 'public, max-age=3600' }),
+  );
+  app.get('/static/app.js', (c) =>
+    c.body(JS, 200, {
+      'content-type': 'text/javascript; charset=utf-8',
+      'cache-control': 'public, max-age=3600',
+    }),
+  );
 
   app.get('/healthz', async (c) => {
     let db: 'ok' | 'error' = 'ok';
@@ -95,18 +109,42 @@ export function createApp(opts: AppOptions = {}) {
 
   app.onError((err, c) => {
     const status = err instanceof HTTPException ? err.status : 500;
-    const message = err instanceof HTTPException ? err.message : 'Something went wrong on our side. Please try again.';
-    if (status >= 500) log.error({ msg: 'unhandled error', request_id: c.var.requestId, route: c.req.path, error: String(err?.stack ?? err).slice(0, 2000) });
+    const message =
+      err instanceof HTTPException ? err.message : 'Something went wrong on our side. Please try again.';
+    if (status >= 500)
+      log.error({
+        msg: 'unhandled error',
+        request_id: c.var.requestId,
+        route: c.req.path,
+        error: String(err?.stack ?? err).slice(0, 2000),
+      });
     if (status === 401 && !wantsJson(c)) return c.redirect(`/login?next=${encodeURIComponent(c.req.path)}`);
     if (wantsJson(c)) {
-      const codes: Record<number, string> = { 400: 'bad_request', 401: 'unauthorized', 402: 'payment_required', 403: 'forbidden', 404: 'not_found', 409: 'conflict', 413: 'too_large', 429: 'rate_limited' };
+      const codes: Record<number, string> = {
+        400: 'bad_request',
+        401: 'unauthorized',
+        402: 'payment_required',
+        403: 'forbidden',
+        404: 'not_found',
+        409: 'conflict',
+        413: 'too_large',
+        429: 'rate_limited',
+      };
       const code = codes[status] ?? 'internal_error';
       return c.json({ error: { code, message } }, status as 400);
     }
     const user = c.var.user ?? null;
     return c.html(
       <Layout title="Error" user={user} csrf={c.var.csrf} noindex>
-        <h1>{status === 404 ? 'Not found' : status === 429 ? 'Slow down' : status >= 500 ? 'Something went wrong' : 'Request not allowed'}</h1>
+        <h1>
+          {status === 404
+            ? 'Not found'
+            : status === 429
+              ? 'Slow down'
+              : status >= 500
+                ? 'Something went wrong'
+                : 'Request not allowed'}
+        </h1>
         <p>{message}</p>
         <p class="muted small">Reference: {c.var.requestId}</p>
       </Layout>,

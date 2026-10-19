@@ -91,16 +91,32 @@ export async function saveResults(d1: D1Database, scanId: string, results: Check
   const db = getDb(d1);
   const stmts = results.map((r) => {
     const row = recordToRow(scanId, r, now);
-    return db.insert(schema.checkResults).values(row).onConflictDoUpdate({
-      target: [schema.checkResults.scanId, schema.checkResults.checkId],
-      set: { status: row.status, summary: row.summary, evidenceJson: row.evidenceJson, fixGuide: row.fixGuide, metaJson: row.metaJson, createdAt: now },
-    });
+    return db
+      .insert(schema.checkResults)
+      .values(row)
+      .onConflictDoUpdate({
+        target: [schema.checkResults.scanId, schema.checkResults.checkId],
+        set: {
+          status: row.status,
+          summary: row.summary,
+          evidenceJson: row.evidenceJson,
+          fixGuide: row.fixGuide,
+          metaJson: row.metaJson,
+          createdAt: now,
+        },
+      });
   });
-  await db.batch(stmts as [typeof stmts[number], ...typeof stmts]);
+  await db.batch(stmts as [(typeof stmts)[number], ...typeof stmts]);
 }
 
 /** Compute and store the final score; returns the finished scan row. */
-export async function finalizeScan(d1: D1Database, scanId: string, input: ScanInput, state: ScanState, now = Date.now()) {
+export async function finalizeScan(
+  d1: D1Database,
+  scanId: string,
+  input: ScanInput,
+  state: ScanState,
+  now = Date.now(),
+) {
   const db = getDb(d1);
   const results = Object.values(state.results);
   const s = scoreScan(results, { includeCheckout: deepCheckoutAllowed(input) });
@@ -112,7 +128,10 @@ export async function finalizeScan(d1: D1Database, scanId: string, input: ScanIn
       phase: 'done',
       score: s.score,
       grade: s.grade,
-      categoryScoresJson: JSON.stringify({ categories: s.categories.map((c) => ({ category: c.category, score: c.score, counts: c.counts })), cappedBy: s.cappedBy ?? null }),
+      categoryScoresJson: JSON.stringify({
+        categories: s.categories.map((c) => ({ category: c.category, score: c.score, counts: c.counts })),
+        cappedBy: s.cappedBy ?? null,
+      }),
       specVersionSeen: state.profileVersion ?? null,
       productsSampled: sampled,
       requestsMade: state.requestsMade,
@@ -121,7 +140,10 @@ export async function finalizeScan(d1: D1Database, scanId: string, input: ScanIn
     .where(eq(schema.scans.id, scanId));
   const scan = await db.query.scans.findFirst({ where: eq(schema.scans.id, scanId) });
   if (scan?.storeId) {
-    await db.update(schema.stores).set({ lastScanId: scanId, lastScore: s.score }).where(eq(schema.stores.id, scan.storeId));
+    await db
+      .update(schema.stores)
+      .set({ lastScanId: scanId, lastScore: s.score })
+      .where(eq(schema.stores.id, scan.storeId));
   }
   return scan!;
 }
@@ -131,7 +153,10 @@ export async function getScanBySlug(d1: D1Database, slug: string) {
 }
 
 export async function getResults(d1: D1Database, scanId: string): Promise<CheckRecord[]> {
-  const rows = await getDb(d1).select().from(schema.checkResults).where(eq(schema.checkResults.scanId, scanId));
+  const rows = await getDb(d1)
+    .select()
+    .from(schema.checkResults)
+    .where(eq(schema.checkResults.scanId, scanId));
   const order = new Map(CHECKS.map((c, i) => [c.id, i]));
   rows.sort((a, b) => (order.get(a.checkId) ?? 999) - (order.get(b.checkId) ?? 999));
   return rows.map((r) => ({
@@ -152,7 +177,13 @@ export async function storeScans(d1: D1Database, storeId: string, limit = 30) {
   return getDb(d1)
     .select()
     .from(schema.scans)
-    .where(and(eq(schema.scans.storeId, storeId), eq(schema.scans.status, 'done'), isNotNull(schema.scans.finishedAt)))
+    .where(
+      and(
+        eq(schema.scans.storeId, storeId),
+        eq(schema.scans.status, 'done'),
+        isNotNull(schema.scans.finishedAt),
+      ),
+    )
     .orderBy(desc(schema.scans.finishedAt))
     .limit(limit);
 }

@@ -20,7 +20,15 @@ import { createScan, getResults, storeScans } from '../services/scans';
 import { verifyOwnership } from '../services/verify';
 import { Csrf, Layout, Notice } from '../views/layout';
 import { HistoryChart, ReportBody, Sparkline } from '../views/report';
-import { alertDeps, requireCsrf, requireStoreAccess, requireUser, runnerDeps, type Ctx, type HonoEnv } from './helpers';
+import {
+  alertDeps,
+  requireCsrf,
+  requireStoreAccess,
+  requireUser,
+  runnerDeps,
+  type Ctx,
+  type HonoEnv,
+} from './helpers';
 
 export const appRoutes = new Hono<HonoEnv>();
 
@@ -48,7 +56,11 @@ function Page(p: { c: Ctx; title: string; children?: unknown }) {
 
 function fmtTime(t: number | null | undefined) {
   if (!t) return '–';
-  return <time datetime={new Date(t).toISOString()}>{new Date(t).toISOString().replace('T', ' ').slice(0, 16)} UTC</time>;
+  return (
+    <time datetime={new Date(t).toISOString()}>
+      {new Date(t).toISOString().replace('T', ' ').slice(0, 16)} UTC
+    </time>
+  );
 }
 
 async function startStoreScan(c: Ctx, store: Store, trigger: 'manual' | 'scheduled') {
@@ -65,7 +77,9 @@ async function startStoreScan(c: Ctx, store: Store, trigger: 'manual' | 'schedul
     testCheckoutEndpoint: store.testCheckoutEndpoint,
     testModeConfirmed: !!store.testModeConfirmedAt,
   });
-  c.executionCtx.waitUntil(kickScan(runnerDeps(c.env, c.var.env, c.var.fetchImpl, c.var.sleep), scan.id, 25_000));
+  c.executionCtx.waitUntil(
+    kickScan(runnerDeps(c.env, c.var.env, c.var.fetchImpl, c.var.sleep), scan.id, 25_000),
+  );
   return scan;
 }
 
@@ -75,11 +89,20 @@ appRoutes.get('/', async (c) => {
   const { account } = requireUser(c);
   const db = getDb(c.env.DB);
   const plan = planOf(account);
-  const stores = await db.select().from(schema.stores).where(eq(schema.stores.accountId, account.id)).orderBy(schema.stores.name);
+  const stores = await db
+    .select()
+    .from(schema.stores)
+    .where(eq(schema.stores.accountId, account.id))
+    .orderBy(schema.stores.name);
   const ids = stores.map((s) => s.id);
   const history = ids.length
     ? await db
-        .select({ storeId: schema.scans.storeId, score: schema.scans.score, finishedAt: schema.scans.finishedAt, status: schema.scans.status })
+        .select({
+          storeId: schema.scans.storeId,
+          score: schema.scans.score,
+          finishedAt: schema.scans.finishedAt,
+          status: schema.scans.status,
+        })
         .from(schema.scans)
         .where(and(inArray(schema.scans.storeId, ids), isNotNull(schema.scans.finishedAt)))
         .orderBy(desc(schema.scans.finishedAt))
@@ -94,7 +117,9 @@ appRoutes.get('/', async (c) => {
         </a>
       </div>
       <p class="muted">
-        Plan: <b>{plan.name}</b> · {stores.length} of {plan.maxStores} stores · <a href="/app/billing">Billing</a> · <a href="/app/alerts">Alerts</a> · <a href="/app/settings">Settings</a>
+        Plan: <b>{plan.name}</b> · {stores.length} of {plan.maxStores} stores ·{' '}
+        <a href="/app/billing">Billing</a> · <a href="/app/alerts">Alerts</a> ·{' '}
+        <a href="/app/settings">Settings</a>
         {plan.apiAccess ? (
           <>
             {' '}
@@ -102,7 +127,12 @@ appRoutes.get('/', async (c) => {
           </>
         ) : null}
       </p>
-      {plan.id === 'free' ? <Notice>Monitoring needs a paid plan. You can still add a store after upgrading, or run free one-off scans from the homepage.</Notice> : null}
+      {plan.id === 'free' ? (
+        <Notice>
+          Monitoring needs a paid plan. You can still add a store after upgrading, or run free one-off scans
+          from the homepage.
+        </Notice>
+      ) : null}
       {stores.length === 0 ? (
         <div class="card">
           <p>No stores yet.</p>
@@ -122,7 +152,10 @@ appRoutes.get('/', async (c) => {
             <tbody>
               {stores.map((s) => {
                 const h = history.filter((x) => x.storeId === s.id && x.status === 'done');
-                const trend = h.slice(0, 10).map((x) => x.score ?? 0).reverse();
+                const trend = h
+                  .slice(0, 10)
+                  .map((x) => x.score ?? 0)
+                  .reverse();
                 return (
                   <tr>
                     <td>
@@ -135,7 +168,14 @@ appRoutes.get('/', async (c) => {
                     </td>
                     <td>{fmtTime(h[0]?.finishedAt)}</td>
                     <td>
-                      <span class={`chip ${s.monitoring ? 's-pass' : ''}`}>{s.monitoring ? 'Monitoring' : 'Not monitored'}</span> {s.verifiedAt ? <span class="chip s-pass">Verified</span> : <span class="chip">Unverified</span>}
+                      <span class={`chip ${s.monitoring ? 's-pass' : ''}`}>
+                        {s.monitoring ? 'Monitoring' : 'Not monitored'}
+                      </span>{' '}
+                      {s.verifiedAt ? (
+                        <span class="chip s-pass">Verified</span>
+                      ) : (
+                        <span class="chip">Unverified</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -163,7 +203,14 @@ appRoutes.get('/stores/new', (c) => {
       <form method="post" action="/app/stores/new" class="card" style="max-width:560px">
         <Csrf token={c.var.csrf} />
         <label for="url">Store URL</label>
-        <input id="url" name="url" type="text" required value={c.req.query('url') ?? ''} placeholder="https://yourstore.com" />
+        <input
+          id="url"
+          name="url"
+          type="text"
+          required
+          value={c.req.query('url') ?? ''}
+          placeholder="https://yourstore.com"
+        />
         <label for="name" style="margin-top:12px">
           Name (optional)
         </label>
@@ -176,7 +223,10 @@ appRoutes.get('/stores/new', (c) => {
   );
 });
 
-const newStoreSchema = z.object({ url: z.string().trim().min(3).max(2048), name: z.string().trim().max(80).optional() });
+const newStoreSchema = z.object({
+  url: z.string().trim().min(3).max(2048),
+  name: z.string().trim().max(80).optional(),
+});
 
 appRoutes.post('/stores/new', async (c) => {
   const f = newStoreSchema.safeParse(await form(c));
@@ -184,22 +234,33 @@ appRoutes.post('/stores/new', async (c) => {
   const plan = planOf(account);
   if (!f.success) throw new HTTPException(400, { message: 'Enter a store URL.' });
   const norm = normaliseStoreUrl(f.data.url);
-  const check = norm ? checkUrl(norm.origin, { allowTestTld: allowTestTld(c.var.env) }) : { ok: false as const, reason: 'invalid address' };
-  if (!norm || !check.ok) throw new HTTPException(400, { message: `We can't monitor that address: ${check.ok ? 'invalid' : check.reason}.` });
+  const check = norm
+    ? checkUrl(norm.origin, { allowTestTld: allowTestTld(c.var.env) })
+    : { ok: false as const, reason: 'invalid address' };
+  if (!norm || !check.ok)
+    throw new HTTPException(400, {
+      message: `We can't monitor that address: ${check.ok ? 'invalid' : check.reason}.`,
+    });
   const db = getDb(c.env.DB);
-  const [{ n }] = (await db.select({ n: count() }).from(schema.stores).where(eq(schema.stores.accountId, account.id))) as [{ n: number }];
+  const [{ n }] = (await db
+    .select({ n: count() })
+    .from(schema.stores)
+    .where(eq(schema.stores.accountId, account.id))) as [{ n: number }];
   if (n >= plan.maxStores) {
     return c.html(
       <Page c={c} title="Upgrade needed">
         <h1>Store limit reached</h1>
         <p>
-          Your {plan.name} plan includes {plan.maxStores} monitored store{plan.maxStores === 1 ? '' : 's'}. <a href="/app/billing">Upgrade your plan</a> to add more.
+          Your {plan.name} plan includes {plan.maxStores} monitored store{plan.maxStores === 1 ? '' : 's'}.{' '}
+          <a href="/app/billing">Upgrade your plan</a> to add more.
         </p>
       </Page>,
       402,
     );
   }
-  const existing = await db.query.stores.findFirst({ where: and(eq(schema.stores.accountId, account.id), eq(schema.stores.domain, norm.domain)) });
+  const existing = await db.query.stores.findFirst({
+    where: and(eq(schema.stores.accountId, account.id), eq(schema.stores.domain, norm.domain)),
+  });
   if (existing) return c.redirect(`/app/stores/${existing.id}`, 303);
   const store = {
     id: newId('sto_'),
@@ -212,8 +273,26 @@ appRoutes.post('/stores/new', async (c) => {
     createdAt: Date.now(),
   };
   await db.insert(schema.stores).values(store);
-  await audit(c.env.DB, 'store.create', { storeId: store.id, domain: store.domain }, { accountId: account.id, userId: user.id });
-  await startStoreScan(c, { ...store, verifiedAt: null, testCheckoutEndpoint: null, testModeConfirmedAt: null, badgeEnabled: 0, lastScanId: null, lastScore: null, lastManualScanAt: null }, 'manual');
+  await audit(
+    c.env.DB,
+    'store.create',
+    { storeId: store.id, domain: store.domain },
+    { accountId: account.id, userId: user.id },
+  );
+  await startStoreScan(
+    c,
+    {
+      ...store,
+      verifiedAt: null,
+      testCheckoutEndpoint: null,
+      testModeConfirmedAt: null,
+      badgeEnabled: 0,
+      lastScanId: null,
+      lastScore: null,
+      lastManualScanAt: null,
+    },
+    'manual',
+  );
   return c.redirect(`/app/stores/${store.id}`, 303);
 });
 
@@ -225,7 +304,10 @@ appRoutes.get('/stores/:id', async (c) => {
   const history = await storeScans(c.env.DB, store.id, 60);
   const cutoff = Date.now() - plan.historyDays * 24 * 60 * 60 * 1000;
   const visible = history.filter((s) => (s.finishedAt ?? 0) >= cutoff);
-  const running = await db.query.scans.findFirst({ where: and(eq(schema.scans.storeId, store.id), inArray(schema.scans.status, ['queued', 'running'])), orderBy: desc(schema.scans.createdAt) });
+  const running = await db.query.scans.findFirst({
+    where: and(eq(schema.scans.storeId, store.id), inArray(schema.scans.status, ['queued', 'running'])),
+    orderBy: desc(schema.scans.createdAt),
+  });
   const latest = visible[0];
   const results = latest ? await getResults(c.env.DB, latest.id) : [];
   const cooldownMs = plan.rescanCooldownMin * 60_000;
@@ -237,7 +319,13 @@ appRoutes.get('/stores/:id', async (c) => {
       </p>
       <h1>{store.name}</h1>
       <p class="muted">
-        {store.domain} · {store.verifiedAt ? 'ownership verified' : <a href={`/app/stores/${store.id}/verify`}>verify ownership</a>} · <a href={`/app/stores/${store.id}/checkout-testing`}>checkout testing</a>
+        {store.domain} ·{' '}
+        {store.verifiedAt ? (
+          'ownership verified'
+        ) : (
+          <a href={`/app/stores/${store.id}/verify`}>verify ownership</a>
+        )}{' '}
+        · <a href={`/app/stores/${store.id}/checkout-testing`}>checkout testing</a>
         {plan.whiteLabel && latest ? (
           <>
             {' '}
@@ -262,7 +350,12 @@ appRoutes.get('/stores/:id', async (c) => {
             <button type="submit" disabled={!!coolingDown || !!running}>
               Re-scan now
             </button>
-            {coolingDown ? <span class="muted small"> Available {plan.rescanCooldownMin} minutes after the last manual scan.</span> : null}
+            {coolingDown ? (
+              <span class="muted small">
+                {' '}
+                Available {plan.rescanCooldownMin} minutes after the last manual scan.
+              </span>
+            ) : null}
           </form>
           <form method="post" action={`/app/stores/${store.id}/monitoring`}>
             <Csrf token={c.var.csrf} />
@@ -280,7 +373,11 @@ appRoutes.get('/stores/:id', async (c) => {
               </button>
             </form>
           ) : null}
-          <form method="post" action={`/app/stores/${store.id}/delete`} data-confirm="Delete this store and its scan history?">
+          <form
+            method="post"
+            action={`/app/stores/${store.id}/delete`}
+            data-confirm="Delete this store and its scan history?"
+          >
             <Csrf token={c.var.csrf} />
             <button class="danger" type="submit">
               Delete store
@@ -298,7 +395,11 @@ appRoutes.get('/stores/:id', async (c) => {
       </div>
       <h2>Score history</h2>
       <div class="card">
-        <HistoryChart points={[...visible].reverse().map((s) => ({ t: s.finishedAt ?? s.createdAt, score: s.score ?? 0 }))} />
+        <HistoryChart
+          points={[...visible]
+            .reverse()
+            .map((s) => ({ t: s.finishedAt ?? s.createdAt, score: s.score ?? 0 }))}
+        />
       </div>
       {latest ? (
         <>
@@ -345,10 +446,15 @@ appRoutes.post('/stores/:id/rescan', async (c) => {
   const plan = planOf(requireUser(c).account);
   const now = Date.now();
   // Atomic cooldown claim: only one request per cooldown window can start a scan.
-  const claimed = await c.env.DB.prepare('UPDATE stores SET last_manual_scan_at = ?1 WHERE id = ?2 AND (last_manual_scan_at IS NULL OR last_manual_scan_at < ?3)')
+  const claimed = await c.env.DB.prepare(
+    'UPDATE stores SET last_manual_scan_at = ?1 WHERE id = ?2 AND (last_manual_scan_at IS NULL OR last_manual_scan_at < ?3)',
+  )
     .bind(now, store.id, now - plan.rescanCooldownMin * 60_000)
     .run();
-  if (claimed.meta.changes !== 1) throw new HTTPException(429, { message: `You can re-scan once every ${plan.rescanCooldownMin} minutes.` });
+  if (claimed.meta.changes !== 1)
+    throw new HTTPException(429, {
+      message: `You can re-scan once every ${plan.rescanCooldownMin} minutes.`,
+    });
   await startStoreScan(c, store, 'manual');
   return c.redirect(`/app/stores/${store.id}`, 303);
 });
@@ -366,7 +472,10 @@ appRoutes.post('/stores/:id/badge', async (c) => {
   const f = await form(c);
   const store = await requireStoreAccess(c, c.req.param('id'));
   const plan = planOf(requireUser(c).account);
-  await getDb(c.env.DB).update(schema.stores).set({ badgeEnabled: f.badge === '1' && plan.badges ? 1 : 0 }).where(eq(schema.stores.id, store.id));
+  await getDb(c.env.DB)
+    .update(schema.stores)
+    .set({ badgeEnabled: f.badge === '1' && plan.badges ? 1 : 0 })
+    .where(eq(schema.stores.id, store.id));
   return c.redirect(`/app/stores/${store.id}`, 303);
 });
 
@@ -375,7 +484,12 @@ appRoutes.post('/stores/:id/delete', async (c) => {
   const store = await requireStoreAccess(c, c.req.param('id'));
   const { user } = requireUser(c);
   await getDb(c.env.DB).delete(schema.stores).where(eq(schema.stores.id, store.id));
-  await audit(c.env.DB, 'store.delete', { storeId: store.id, domain: store.domain }, { accountId: store.accountId, userId: user.id });
+  await audit(
+    c.env.DB,
+    'store.delete',
+    { storeId: store.id, domain: store.domain },
+    { accountId: store.accountId, userId: user.id },
+  );
   return c.redirect('/app', 303);
 });
 
@@ -418,7 +532,9 @@ function VerifyPage(p: { c: Ctx; store: Store; result?: { ok: boolean; details: 
             Serve <code>{`https://${s.domain}/.well-known/cartprobe-verify.txt`}</code> containing only:
           </p>
           <p>
-            <code id="tok" class="mono">{s.verifyToken}</code>{' '}
+            <code id="tok" class="mono">
+              {s.verifyToken}
+            </code>{' '}
             <button class="secondary copy" type="button" data-copy="tok">
               Copy
             </button>
@@ -442,10 +558,22 @@ appRoutes.post('/stores/:id/verify', async (c) => {
   await form(c);
   const store = await requireStoreAccess(c, c.req.param('id'));
   const env = c.var.env;
-  const r = await verifyOwnership(store.domain, store.verifyToken, { fetchImpl: c.var.fetchImpl ?? makeTransport(env), allowTestTld: allowTestTld(env), userAgent: userAgentFor(env.APP_DOMAIN) });
+  const r = await verifyOwnership(store.domain, store.verifyToken, {
+    fetchImpl: c.var.fetchImpl ?? makeTransport(env),
+    allowTestTld: allowTestTld(env),
+    userAgent: userAgentFor(env.APP_DOMAIN),
+  });
   if (r.ok) {
-    await getDb(c.env.DB).update(schema.stores).set({ verifiedAt: Date.now() }).where(eq(schema.stores.id, store.id));
-    await audit(c.env.DB, 'store.verified', { storeId: store.id, method: r.method }, { accountId: store.accountId, userId: requireUser(c).user.id });
+    await getDb(c.env.DB)
+      .update(schema.stores)
+      .set({ verifiedAt: Date.now() })
+      .where(eq(schema.stores.id, store.id));
+    await audit(
+      c.env.DB,
+      'store.verified',
+      { storeId: store.id, method: r.method },
+      { accountId: store.accountId, userId: requireUser(c).user.id },
+    );
     return c.redirect(`/app/stores/${store.id}/verify`, 303);
   }
   return c.html(<VerifyPage c={c} store={store} result={r} />, 400);
@@ -468,16 +596,30 @@ appRoutes.get('/stores/:id/checkout-testing', async (c) => {
       ) : (
         <>
           <p>
-            With checkout testing on, each scan creates one checkout session for a single in-stock item on the endpoint below, validates it, and immediately cancels it. CartProbe never sends payment details and never completes a checkout.
+            With checkout testing on, each scan creates one checkout session for a single in-stock item on the
+            endpoint below, validates it, and immediately cancels it. CartProbe never sends payment details
+            and never completes a checkout.
           </p>
-          <form method="post" action={`/app/stores/${store.id}/checkout-testing`} class="card" style="max-width:640px">
+          <form
+            method="post"
+            action={`/app/stores/${store.id}/checkout-testing`}
+            class="card"
+            style="max-width:640px"
+          >
             <Csrf token={c.var.csrf} />
             <label for="endpoint">Test-mode REST endpoint (UCP shopping service base URL)</label>
-            <input id="endpoint" name="endpoint" type="url" value={store.testCheckoutEndpoint ?? ''} placeholder={`https://${store.domain}/ucp/v1`} />
+            <input
+              id="endpoint"
+              name="endpoint"
+              type="url"
+              value={store.testCheckoutEndpoint ?? ''}
+              placeholder={`https://${store.domain}/ucp/v1`}
+            />
             <p class="muted small">Must be https on {store.domain} or a subdomain.</p>
             <p>
               <label style="font-weight:400">
-                <input type="checkbox" name="confirm" value="1" checked={!!store.testModeConfirmedAt} /> I confirm this endpoint is in test mode
+                <input type="checkbox" name="confirm" value="1" checked={!!store.testModeConfirmedAt} /> I
+                confirm this endpoint is in test mode
               </label>
             </p>
             <button type="submit">Save</button>
@@ -491,15 +633,24 @@ appRoutes.get('/stores/:id/checkout-testing', async (c) => {
 appRoutes.post('/stores/:id/checkout-testing', async (c) => {
   const f = await form(c);
   const store = await requireStoreAccess(c, c.req.param('id'));
-  if (!store.verifiedAt) throw new HTTPException(403, { message: 'Verify ownership before enabling checkout testing.' });
+  if (!store.verifiedAt)
+    throw new HTTPException(403, { message: 'Verify ownership before enabling checkout testing.' });
   const endpoint = (f.endpoint ?? '').trim();
-  if (endpoint && !checkoutEndpointAllowed(endpoint, store.domain)) throw new HTTPException(400, { message: `The endpoint must be an https URL on ${store.domain} or one of its subdomains.` });
+  if (endpoint && !checkoutEndpointAllowed(endpoint, store.domain))
+    throw new HTTPException(400, {
+      message: `The endpoint must be an https URL on ${store.domain} or one of its subdomains.`,
+    });
   const confirmed = f.confirm === '1' && !!endpoint;
   await getDb(c.env.DB)
     .update(schema.stores)
     .set({ testCheckoutEndpoint: endpoint || null, testModeConfirmedAt: confirmed ? Date.now() : null })
     .where(eq(schema.stores.id, store.id));
-  await audit(c.env.DB, 'store.checkout_testing', { storeId: store.id, enabled: confirmed }, { accountId: store.accountId, userId: requireUser(c).user.id });
+  await audit(
+    c.env.DB,
+    'store.checkout_testing',
+    { storeId: store.id, enabled: confirmed },
+    { accountId: store.accountId, userId: requireUser(c).user.id },
+  );
   return c.redirect(`/app/stores/${store.id}`, 303);
 });
 
@@ -509,13 +660,24 @@ appRoutes.get('/alerts', async (c) => {
   const { account } = requireUser(c);
   const plan = planOf(account);
   const db = getDb(c.env.DB);
-  const channels = await db.select().from(schema.alertChannels).where(eq(schema.alertChannels.accountId, account.id));
-  const recent = await db.select().from(schema.alerts).where(eq(schema.alerts.accountId, account.id)).orderBy(desc(schema.alerts.sentAt)).limit(20);
+  const channels = await db
+    .select()
+    .from(schema.alertChannels)
+    .where(eq(schema.alertChannels.accountId, account.id));
+  const recent = await db
+    .select()
+    .from(schema.alerts)
+    .where(eq(schema.alerts.accountId, account.id))
+    .orderBy(desc(schema.alerts.sentAt))
+    .limit(20);
   return c.html(
     <Page c={c} title="Alerts">
       <h1>Alert channels</h1>
       <p class="muted">
-        Alerts are sent only when a monitored store changes meaningfully: a new failure, a score drop of 5 points or more, an outdated UCP version, or the profile being unreachable twice in a row. Without channels, alerts go to the account owner's email. Your plan allows: {plan.alertChannels.join(', ') || 'none'}.
+        Alerts are sent only when a monitored store changes meaningfully: a new failure, a score drop of 5
+        points or more, an outdated UCP version, or the profile being unreachable twice in a row. Without
+        channels, alerts go to the account owner's email. Your plan allows:{' '}
+        {plan.alertChannels.join(', ') || 'none'}.
       </p>
       <div class="card table-wrap">
         <table>
@@ -603,27 +765,49 @@ appRoutes.get('/alerts', async (c) => {
   );
 });
 
-const channelSchema = z.object({ type: z.enum(['email', 'webhook', 'slack']), target: z.string().trim().min(3).max(500), label: z.string().trim().max(60).optional() });
+const channelSchema = z.object({
+  type: z.enum(['email', 'webhook', 'slack']),
+  target: z.string().trim().min(3).max(500),
+  label: z.string().trim().max(60).optional(),
+});
 
 appRoutes.post('/alerts', async (c) => {
   const f = channelSchema.safeParse(await form(c));
   const { account, user } = requireUser(c);
   if (!f.success) throw new HTTPException(400, { message: 'Choose a type and enter a target.' });
-  if (!planOf(account).alertChannels.includes(f.data.type)) throw new HTTPException(403, { message: `Your plan does not include ${f.data.type} alerts.` });
+  if (!planOf(account).alertChannels.includes(f.data.type))
+    throw new HTTPException(403, { message: `Your plan does not include ${f.data.type} alerts.` });
   const problem = validateTarget(f.data.type, f.data.target);
   if (problem) throw new HTTPException(400, { message: problem });
-  if (f.data.type !== 'email' && !checkUrl(f.data.target).ok) throw new HTTPException(400, { message: 'That URL is not allowed (public https hosts only).' });
+  if (f.data.type !== 'email' && !checkUrl(f.data.target).ok)
+    throw new HTTPException(400, { message: 'That URL is not allowed (public https hosts only).' });
   await getDb(c.env.DB)
     .insert(schema.alertChannels)
-    .values({ id: newId('ach_'), accountId: account.id, type: f.data.type, targetEncrypted: await encryptSecret(c.var.env.ENCRYPTION_KEY, f.data.target), label: f.data.label || f.data.type, createdAt: Date.now() });
-  await audit(c.env.DB, 'alert_channel.create', { type: f.data.type }, { accountId: account.id, userId: user.id });
+    .values({
+      id: newId('ach_'),
+      accountId: account.id,
+      type: f.data.type,
+      targetEncrypted: await encryptSecret(c.var.env.ENCRYPTION_KEY, f.data.target),
+      label: f.data.label || f.data.type,
+      createdAt: Date.now(),
+    });
+  await audit(
+    c.env.DB,
+    'alert_channel.create',
+    { type: f.data.type },
+    { accountId: account.id, userId: user.id },
+  );
   return c.redirect('/app/alerts', 303);
 });
 
 appRoutes.post('/alerts/:id/delete', async (c) => {
   await form(c);
   const { account } = requireUser(c);
-  await getDb(c.env.DB).delete(schema.alertChannels).where(and(eq(schema.alertChannels.id, c.req.param('id')), eq(schema.alertChannels.accountId, account.id)));
+  await getDb(c.env.DB)
+    .delete(schema.alertChannels)
+    .where(
+      and(eq(schema.alertChannels.id, c.req.param('id')), eq(schema.alertChannels.accountId, account.id)),
+    );
   return c.redirect('/app/alerts', 303);
 });
 
@@ -633,7 +817,15 @@ appRoutes.post('/alerts/test', async (c) => {
   const r = await deliver(
     alertDeps(c),
     account.id,
-    { storeId: '', storeName: 'Test store', domain: 'example.com', scanId: '', score: 87, reportUrl: `${c.var.env.APP_URL}/app`, events: [{ kind: 'score_drop', from: 92, to: 87 }] },
+    {
+      storeId: '',
+      storeName: 'Test store',
+      domain: 'example.com',
+      scanId: '',
+      score: 87,
+      reportUrl: `${c.var.env.APP_URL}/app`,
+      events: [{ kind: 'score_drop', from: 92, to: 87 }],
+    },
     'test',
   );
   return c.html(
@@ -653,16 +845,21 @@ appRoutes.get('/billing', async (c) => {
   const plan = planOf(account);
   const provider = billingProvider(c.var.env);
   const db = getDb(c.env.DB);
-  const [{ n }] = (await db.select({ n: count() }).from(schema.stores).where(eq(schema.stores.accountId, account.id))) as [{ n: number }];
+  const [{ n }] = (await db
+    .select({ n: count() })
+    .from(schema.stores)
+    .where(eq(schema.stores.accountId, account.id))) as [{ n: number }];
   return c.html(
     <Page c={c} title="Billing">
       <h1>Billing</h1>
       <div class="card">
         <p>
-          Current plan: <b>{plan.name}</b> ({account.status}){account.currentPeriodEnd ? <> · renews or ends {fmtTime(account.currentPeriodEnd)}</> : null}
+          Current plan: <b>{plan.name}</b> ({account.status})
+          {account.currentPeriodEnd ? <> · renews or ends {fmtTime(account.currentPeriodEnd)}</> : null}
         </p>
         <p>
-          Stores: {n} of {plan.maxStores} · products sampled per scan: {plan.productsSampled} · history: {plan.historyDays} days
+          Stores: {n} of {plan.maxStores} · products sampled per scan: {plan.productsSampled} · history:{' '}
+          {plan.historyDays} days
         </p>
       </div>
       <div class="grid three">
@@ -694,8 +891,11 @@ appRoutes.get('/billing', async (c) => {
 appRoutes.get('/reports/:scanId/print', async (c) => {
   const { account } = requireUser(c);
   const plan = planOf(account);
-  if (!plan.whiteLabel) throw new HTTPException(403, { message: 'Printable white-label reports are part of the Agency plan.' });
-  const scan = await getDb(c.env.DB).query.scans.findFirst({ where: eq(schema.scans.id, c.req.param('scanId')) });
+  if (!plan.whiteLabel)
+    throw new HTTPException(403, { message: 'Printable white-label reports are part of the Agency plan.' });
+  const scan = await getDb(c.env.DB).query.scans.findFirst({
+    where: eq(schema.scans.id, c.req.param('scanId')),
+  });
   if (!scan?.storeId || scan.status !== 'done') throw new HTTPException(404, { message: 'Report not found' });
   await requireStoreAccess(c, scan.storeId);
   const results = await getResults(c.env.DB, scan.id);
@@ -709,7 +909,11 @@ appRoutes.get('/reports/:scanId/print', async (c) => {
       logo = null;
     }
   }
-  if (logo) c.header('content-security-policy', `default-src 'self'; img-src 'self' data: ${new URL(logo).origin}; style-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`);
+  if (logo)
+    c.header(
+      'content-security-policy',
+      `default-src 'self'; img-src 'self' data: ${new URL(logo).origin}; style-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,
+    );
   const html = (
     <Layout title={`${scan.domain} — ${brand}`} bare noindex>
       <div class="row no-print" style="margin-bottom:12px">
@@ -719,7 +923,9 @@ appRoutes.get('/reports/:scanId/print', async (c) => {
         {logo ? <img src={logo} alt={brand} style="max-height:48px;max-width:200px" /> : null}
         <div>
           <h1 style="margin:0">Agent readiness report</h1>
-          <p class="muted" style="margin:0">Prepared by {brand}</p>
+          <p class="muted" style="margin:0">
+            Prepared by {brand}
+          </p>
         </div>
       </header>
       <ReportBody scan={scan} results={results} fixLinks={false} />
@@ -733,8 +939,13 @@ appRoutes.get('/reports/:scanId/print', async (c) => {
 
 appRoutes.get('/api-keys', async (c) => {
   const { account } = requireUser(c);
-  if (!planOf(account).apiAccess) throw new HTTPException(403, { message: 'API keys are part of the Vendor plan.' });
-  const keys = await getDb(c.env.DB).select().from(schema.apiKeys).where(eq(schema.apiKeys.accountId, account.id)).orderBy(desc(schema.apiKeys.createdAt));
+  if (!planOf(account).apiAccess)
+    throw new HTTPException(403, { message: 'API keys are part of the Vendor plan.' });
+  const keys = await getDb(c.env.DB)
+    .select()
+    .from(schema.apiKeys)
+    .where(eq(schema.apiKeys.accountId, account.id))
+    .orderBy(desc(schema.apiKeys.createdAt));
   return c.html(
     <Page c={c} title="API keys">
       <h1>API keys</h1>
@@ -763,7 +974,11 @@ appRoutes.get('/api-keys', async (c) => {
                   {k.revokedAt ? (
                     'revoked'
                   ) : (
-                    <form method="post" action={`/app/api-keys/${k.id}/revoke`} data-confirm="Revoke this key? CI jobs using it will stop working.">
+                    <form
+                      method="post"
+                      action={`/app/api-keys/${k.id}/revoke`}
+                      data-confirm="Revoke this key? CI jobs using it will stop working."
+                    >
                       <Csrf token={c.var.csrf} />
                       <button class="link" type="submit">
                         Revoke
@@ -791,7 +1006,8 @@ appRoutes.get('/api-keys', async (c) => {
 appRoutes.post('/api-keys', async (c) => {
   const f = await form(c);
   const { account, user } = requireUser(c);
-  if (!planOf(account).apiAccess) throw new HTTPException(403, { message: 'API keys are part of the Vendor plan.' });
+  if (!planOf(account).apiAccess)
+    throw new HTTPException(403, { message: 'API keys are part of the Vendor plan.' });
   const label = (f.label ?? '').trim().slice(0, 60) || 'API key';
   const k = await createApiKey(c.env.DB, account.id, label);
   await audit(c.env.DB, 'api_key.create', { keyId: k.id }, { accountId: account.id, userId: user.id });
@@ -800,7 +1016,9 @@ appRoutes.post('/api-keys', async (c) => {
       <h1>API key created</h1>
       <Notice kind="warn">Copy it now. We store only a hash and cannot show it again.</Notice>
       <p>
-        <code id="key" class="mono">{k.key}</code>{' '}
+        <code id="key" class="mono">
+          {k.key}
+        </code>{' '}
         <button class="secondary copy" type="button" data-copy="key">
           Copy
         </button>
@@ -815,7 +1033,10 @@ appRoutes.post('/api-keys', async (c) => {
 appRoutes.post('/api-keys/:id/revoke', async (c) => {
   await form(c);
   const { account } = requireUser(c);
-  await getDb(c.env.DB).update(schema.apiKeys).set({ revokedAt: Date.now() }).where(and(eq(schema.apiKeys.id, c.req.param('id')), eq(schema.apiKeys.accountId, account.id)));
+  await getDb(c.env.DB)
+    .update(schema.apiKeys)
+    .set({ revokedAt: Date.now() })
+    .where(and(eq(schema.apiKeys.id, c.req.param('id')), eq(schema.apiKeys.accountId, account.id)));
   return c.redirect('/app/api-keys', 303);
 });
 
@@ -840,14 +1061,32 @@ appRoutes.get('/settings', async (c) => {
           <>
             <h3>White-label reports</h3>
             <label for="wl_name">Agency name shown on reports</label>
-            <input id="wl_name" name="white_label_name" type="text" maxlength={80} value={account.whiteLabelName ?? ''} />
+            <input
+              id="wl_name"
+              name="white_label_name"
+              type="text"
+              maxlength={80}
+              value={account.whiteLabelName ?? ''}
+            />
             <label for="wl_logo" style="margin-top:10px">
               Logo URL (https)
             </label>
-            <input id="wl_logo" name="white_label_logo_url" type="url" maxlength={500} value={account.whiteLabelLogoUrl ?? ''} />
+            <input
+              id="wl_logo"
+              name="white_label_logo_url"
+              type="url"
+              maxlength={500}
+              value={account.whiteLabelLogoUrl ?? ''}
+            />
             <p>
               <label style="font-weight:400">
-                <input type="checkbox" name="hide_footer" value="1" checked={!!account.whiteLabelHideFooter} /> Hide the “Generated with CartProbe” footer
+                <input
+                  type="checkbox"
+                  name="hide_footer"
+                  value="1"
+                  checked={!!account.whiteLabelHideFooter}
+                />{' '}
+                Hide the “Generated with CartProbe” footer
               </label>
             </p>
           </>
@@ -876,7 +1115,15 @@ appRoutes.get('/settings', async (c) => {
 const settingsSchema = z.object({
   name: z.string().trim().min(1).max(80),
   white_label_name: z.string().trim().max(80).optional(),
-  white_label_logo_url: z.union([z.literal(''), z.url().max(500).refine((u) => u.startsWith('https://'), 'logo URL must be https')]).optional(),
+  white_label_logo_url: z
+    .union([
+      z.literal(''),
+      z
+        .url()
+        .max(500)
+        .refine((u) => u.startsWith('https://'), 'logo URL must be https'),
+    ])
+    .optional(),
   hide_footer: z.string().optional(),
 });
 
@@ -889,7 +1136,13 @@ appRoutes.post('/settings', async (c) => {
     .update(schema.accounts)
     .set({
       name: f.data.name,
-      ...(wl ? { whiteLabelName: f.data.white_label_name || null, whiteLabelLogoUrl: f.data.white_label_logo_url || null, whiteLabelHideFooter: f.data.hide_footer === '1' ? 1 : 0 } : {}),
+      ...(wl
+        ? {
+            whiteLabelName: f.data.white_label_name || null,
+            whiteLabelLogoUrl: f.data.white_label_logo_url || null,
+            whiteLabelHideFooter: f.data.hide_footer === '1' ? 1 : 0,
+          }
+        : {}),
     })
     .where(eq(schema.accounts.id, account.id));
   await audit(c.env.DB, 'account.settings', {}, { accountId: account.id, userId: user.id });
