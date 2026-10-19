@@ -63,7 +63,8 @@ export async function deliver(deps: AlertDeps, accountId: string, payload: Alert
   for (const t of targets) {
     const ch = channelFor(t.type, deps);
     const r = ch ? await ch.send(t.target, payload) : { ok: false, error: 'unknown channel type' };
-    r.ok ? sent++ : failed++;
+    if (r.ok) sent++;
+    else failed++;
     await db.insert(schema.alerts).values({
       id: newId('alr_'),
       accountId,

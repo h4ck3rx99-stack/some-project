@@ -52,12 +52,12 @@ async function discoverProductUrls(ctx: ScanContext): Promise<void> {
   await fetchRobots(ctx);
   const robots = parseRobots(ctx.state.robots?.text ?? '');
   const sm = { tried: [] as string[], found: [] as string[], productSitemap: undefined as string | undefined };
-  let urls: string[] = [];
+
 
   const fromCatalog = (ctx.state.catalog?.products ?? [])
     .flatMap((p) => [p.url, ...p.variants.map((v) => v.url)])
     .filter((u): u is string => typeof u === 'string' && sameSite(u, ctx.domain));
-  urls = [...new Set(fromCatalog.map((u) => u.split('#')[0]!))];
+  const urls = [...new Set(fromCatalog.map((u) => u.split('#')[0]!))];
 
   const fetchXml = async (u: string): Promise<string | null> => {
     if (sm.tried.includes(u) || sm.tried.length >= 8) return null;
@@ -68,7 +68,9 @@ async function discoverProductUrls(ctx: ScanContext): Promise<void> {
     return r.bodyText;
   };
 
-  if (urls.length < ctx.limits.maxProducts) {
+  const sitemapProductUrls: string[] = [];
+  // Always look for sitemaps: basics.sitemap_found reports on them even when the catalog gave enough URLs.
+  {
     const candidates = [
       ...robots.sitemaps.filter((u) => sameSite(u, ctx.domain)),
       `${ctx.url}/sitemap_index.xml`,
@@ -101,20 +103,24 @@ async function discoverProductUrls(ctx: ScanContext): Promise<void> {
         }
       }
     }
-    for (const u of productLocs) if (!urls.includes(u)) urls.push(u);
+    sitemapProductUrls.push(...productLocs.filter((u) => !urls.includes(u)));
   }
   ctx.state.sitemaps = sm;
 
   const blocked: { url: string; rule: string }[] = [];
-  const allowed = urls.filter((u) => {
+  const isAllowedUrl = (u: string) => {
     const p = new URL(u);
     const d = isAllowed(robots, BOT_TOKEN, p.pathname + p.search);
     if (!d.allowed) blocked.push({ url: u, rule: `${d.agent ?? '*'}: Disallow ${d.rule?.path ?? ''}` });
     return d.allowed;
-  });
-  ctx.state.productUrls = allowed.slice(0, 5000);
+  };
+  const fromCatalogAllowed = urls.filter(isAllowedUrl);
+  const fromSitemapAllowed = [...new Set(sitemapProductUrls)].filter(isAllowedUrl);
+  ctx.state.productUrls = [...fromCatalogAllowed, ...fromSitemapAllowed].slice(0, 5000);
   ctx.state.robotsBlocked = blocked.slice(0, 50);
-  ctx.state.sampled = sampleEvenly(allowed, ctx.limits.maxProducts);
+  // Catalog URLs first (they enable consistency checks), then an even spread of the sitemap.
+  const head = fromCatalogAllowed.slice(0, ctx.limits.maxProducts);
+  ctx.state.sampled = [...head, ...sampleEvenly(fromSitemapAllowed, ctx.limits.maxProducts - head.length)];
   ctx.state.productPages = [];
 }
 

@@ -49,7 +49,8 @@ export function csrfFrom(html: string): string {
   return /name="_csrf" value="([^"]+)"/.exec(html)?.[1] ?? '';
 }
 
-export async function login(email: string, ip = '198.51.100.1'): Promise<Client> {
+let ipCounter = 0;
+export async function login(email: string, ip = `100.64.${Math.floor(++ipCounter / 250)}.${ipCounter % 250}`): Promise<Client> {
   const r = await req('/login', { ...form({ email }), headers: { 'content-type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': ip } });
   if (r.status !== 303) throw new Error(`login POST ${r.status}`);
   const mail = [...consoleOutbox].reverse().find((m) => m.to === email);

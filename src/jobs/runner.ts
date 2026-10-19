@@ -121,7 +121,10 @@ export async function advanceJob(deps: RunnerDeps, lease: Lease, budgetMs = DEFA
       }
     : undefined;
 
-  while (phase !== 'done' && now() - started < budgetMs) {
+  // Always make progress on at least one phase per invocation, then continue while budget remains.
+  let first = true;
+  while (phase !== 'done' && (first || now() - started < budgetMs)) {
+    first = false;
     if (attempts > MAX_ATTEMPTS) {
       const ctx = createContext(input, state, { ...deps, capture });
       const errs = errorPhase(phase, ctx, job.lastError ?? 'phase failed repeatedly');

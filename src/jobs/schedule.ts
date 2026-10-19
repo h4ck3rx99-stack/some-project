@@ -134,7 +134,7 @@ export interface CronDeps {
 export async function runCron(cron: string, deps: CronDeps): Promise<string> {
   const started = Date.now();
   const d1 = deps.runner.d1;
-  let result = 'ok';
+  let result: string;
   try {
     if (cron === CRONS.runner) result = `processed ${await drainJobs(deps.runner, 5, 25_000)} jobs`;
     else if (cron === CRONS.daily) result = `enqueued ${await enqueueDailyScans(d1)} scans`;

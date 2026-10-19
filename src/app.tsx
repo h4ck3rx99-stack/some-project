@@ -42,7 +42,8 @@ export function createApp(opts: AppOptions = {}) {
     if (opts.sleep) c.set('sleep', opts.sleep);
     await next();
     c.header('x-request-id', rid);
-    for (const [k, v] of Object.entries(SECURITY_HEADERS)) c.header(k, v);
+    // Routes may tighten or extend a header (e.g. the print report's CSP for a logo host); keep theirs.
+    for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (!c.res.headers.has(k)) c.header(k, v);
     if (c.var.env.ENVIRONMENT === 'production') c.header('strict-transport-security', 'max-age=31536000; includeSubDomains');
   });
 
@@ -102,12 +103,7 @@ export function createApp(opts: AppOptions = {}) {
       const code = codes[status] ?? 'internal_error';
       return c.json({ error: { code, message } }, status as 400);
     }
-    let user = null;
-    try {
-      user = c.var.user;
-    } catch {
-      user = null;
-    }
+    const user = c.var.user ?? null;
     return c.html(
       <Layout title="Error" user={user} csrf={c.var.csrf} noindex>
         <h1>{status === 404 ? 'Not found' : status === 429 ? 'Slow down' : status >= 500 ? 'Something went wrong' : 'Request not allowed'}</h1>

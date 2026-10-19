@@ -69,7 +69,7 @@ export const basicsChecks: CheckDefinition[] = [
     category: 'basics',
     severity: 'medium',
     phase: 'basics',
-    why: 'If robots.txt blocks product pages, compliant agents and crawlers cannot read them.',
+    why: 'If robots.txt blocks product pages, well-behaved agents and crawlers will not read them.',
     async run(ctx) {
       const blocked = ctx.state.robotsBlocked ?? [];
       const total = (ctx.state.productUrls?.length ?? 0) + blocked.length;
