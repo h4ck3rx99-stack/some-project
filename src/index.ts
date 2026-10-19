@@ -10,6 +10,6 @@ export default {
   fetch: app.fetch,
   async scheduled(controller: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
     const e = appEnv(env);
-    ctx.waitUntil(runCron(controller.cron, { runner: runnerDeps(env, e), email: emailProvider(e), appUrl: e.APP_URL, captures: env.CAPTURES }));
+    ctx.waitUntil(runCron(controller.cron, { runner: runnerDeps(env, e), email: emailProvider(e), appUrl: e.APP_URL, captures: env.CAPTURES, staggerDaily: e.ENVIRONMENT === 'production' }));
   },
 } satisfies ExportedHandler<Bindings>;

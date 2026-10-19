@@ -11,7 +11,7 @@
     "build:content": "tsx scripts/build-content.ts",
     "build:validators": "tsx scripts/compile-validators.ts",
     "generate": "npm run build:content && npm run build:validators",
-    "dev": "wrangler dev --port 8787",
+    "dev": "wrangler dev --port 8787 --test-scheduled",
     "mock-store": "wrangler dev --config test/mock-store/wrangler.toml --port 8788",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

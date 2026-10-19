@@ -37,7 +37,8 @@ export function staggerSeconds(storeId: string): number {
   return h % 3600;
 }
 
-export async function enqueueDailyScans(d1: D1Database, now = Date.now()): Promise<number> {
+/** @param stagger spread runs across the hour (off in development so a manual cron trigger runs at once). */
+export async function enqueueDailyScans(d1: D1Database, now = Date.now(), stagger = true): Promise<number> {
   const db = getDb(d1);
   const rows = await db.select({ s: schema.stores, a: schema.accounts }).from(schema.stores).innerJoin(schema.accounts, eq(schema.accounts.id, schema.stores.accountId)).where(eq(schema.stores.monitoring, 1));
   const busy = new Set(
@@ -57,7 +58,7 @@ export async function enqueueDailyScans(d1: D1Database, now = Date.now()): Promi
       verifiedOwnership: !!s.verifiedAt,
       testCheckoutEndpoint: s.testCheckoutEndpoint,
       testModeConfirmed: !!s.testModeConfirmedAt,
-      runAfter: now + staggerSeconds(s.id) * 1000,
+      runAfter: now + (stagger ? staggerSeconds(s.id) * 1000 : 0),
       now,
     });
     n++;
@@ -129,6 +130,7 @@ export interface CronDeps {
   email: EmailProvider;
   appUrl: string;
   captures?: R2Bucket;
+  staggerDaily?: boolean;
 }
 
 export async function runCron(cron: string, deps: CronDeps): Promise<string> {
@@ -137,7 +139,7 @@ export async function runCron(cron: string, deps: CronDeps): Promise<string> {
   let result: string;
   try {
     if (cron === CRONS.runner) result = `processed ${await drainJobs(deps.runner, 5, 25_000)} jobs`;
-    else if (cron === CRONS.daily) result = `enqueued ${await enqueueDailyScans(d1)} scans`;
+    else if (cron === CRONS.daily) result = `enqueued ${await enqueueDailyScans(d1, Date.now(), deps.staggerDaily ?? true)} scans`;
     else if (cron === CRONS.cleanup) result = JSON.stringify(await cleanup(d1, deps.captures));
     else if (cron === CRONS.digest) result = `sent ${await weeklyDigest(d1, deps.email, deps.appUrl)} digests`;
     else result = `unknown cron ${cron}`;

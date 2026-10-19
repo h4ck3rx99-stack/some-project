@@ -38,6 +38,15 @@ describe('scoring', () => {
     expect(s.cappedBy).toBe('discovery.profile_reachable');
   });
 
+  it('caps at 89 when any other critical check fails', () => {
+    const s = scoreScan([r('discovery', 'high', 'pass'), r('discovery', 'high', 'pass'), r('consistency', 'critical', 'fail', 'consistency.price_match'), r('consistency', 'high', 'pass'), r('consistency', 'high', 'pass'), r('products', 'high', 'pass'), r('basics', 'high', 'pass')], { includeCheckout: false });
+    expect(s.score).toBe(89);
+    expect(s.grade).toBe('Mostly ready');
+    expect(s.cappedBy).toBe('consistency.price_match');
+    // Unscored checkout failures do not cap.
+    expect(scoreScan([r('discovery', 'high', 'pass'), r('checkout', 'critical', 'fail')], { includeCheckout: false }).score).toBe(100);
+  });
+
   it('nothing applicable → 0', () => {
     expect(scoreScan([], { includeCheckout: false }).score).toBe(0);
   });

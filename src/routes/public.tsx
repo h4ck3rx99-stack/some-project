@@ -279,7 +279,7 @@ publicRoutes.get('/docs', (c) =>
         <p>
           The overall score is the weighted average of the categories that apply to your store (
           {CATEGORIES.map((k) => `${CATEGORY_LABELS[k]} ${CATEGORY_WEIGHTS[k]}`).join(', ')}
-          ), re-normalised when a category does not apply (for example a store that does not offer catalog search). Checkout counts only for stores whose owner verified ownership and set up a test-mode endpoint. If your UCP profile cannot be fetched or parsed, the score is capped at 39, because agents cannot use the store at all.
+          ), re-normalised when a category does not apply (for example a store that does not offer catalog search). Checkout counts only for stores whose owner verified ownership and set up a test-mode endpoint. If your UCP profile cannot be fetched or parsed, the score is capped at 39, because agents cannot use the store at all. If any other critical check fails, the score is capped at 89, so a store with a critical problem is never graded Agent-ready.
         </p>
         <p>Grades: {GRADE_BANDS.map((b) => `${b.min}+ ${b.grade}`).join(' · ')}.</p>
         <p>

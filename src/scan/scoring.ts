@@ -25,6 +25,8 @@ export interface ScoreResult {
 
 /** Without a readable UCP profile agents cannot use the store at all, whatever else is right. */
 export const DISCOVERY_GATE_CAP = 39;
+/** A store with any failing critical check is never labelled "Agent-ready". */
+export const CRITICAL_FAIL_CAP = 89;
 
 const CREDIT: Record<CheckStatus, number | null> = { pass: 1, warn: 0.5, fail: 0, error: 0, skip: null };
 
@@ -74,6 +76,14 @@ export function scoreScan(results: ScorableResult[], opts: { includeCheckout: bo
   if (gate && score > DISCOVERY_GATE_CAP) {
     score = DISCOVERY_GATE_CAP;
     cappedBy = gate.checkId ?? 'discovery';
+  } else if (!gate) {
+    const critical = (results as (ScorableResult & { checkId?: string })[]).find(
+      (r) => r.severity === 'critical' && (r.status === 'fail' || r.status === 'error') && (r.category !== 'checkout' || opts.includeCheckout),
+    );
+    if (critical && score > CRITICAL_FAIL_CAP) {
+      score = CRITICAL_FAIL_CAP;
+      cappedBy = critical.checkId ?? critical.category;
+    }
   }
   return { score, grade: gradeFor(score), categories: cats, ...(cappedBy ? { cappedBy } : {}) };
 }

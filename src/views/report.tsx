@@ -261,7 +261,9 @@ export function ReportBody(p: { scan: ScanRow; results: CheckRecord[]; fixLinks?
           </p>
           {cappedBy ? (
             <p class="small">
-              Score capped at 39 because “{CHECKS_BY_ID.get(cappedBy)?.title ?? cappedBy}” failed: without a readable UCP profile, agents cannot use the store.
+              {cappedBy.startsWith('discovery.')
+                ? `Score capped at 39 because “${CHECKS_BY_ID.get(cappedBy)?.title ?? cappedBy}” failed: without a readable UCP profile, agents cannot use the store.`
+                : `Score capped at 89 because the critical check “${CHECKS_BY_ID.get(cappedBy)?.title ?? cappedBy}” failed.`}
             </p>
           ) : null}
           <ReportHeader scan={p.scan} />
