@@ -23,7 +23,10 @@
     "seed:local": "tsx scripts/seed.ts > .wrangler/seed.sql && wrangler d1 execute cartprobe --local --file .wrangler/seed.sql",
     "schemas:update": "tsx scripts/update-ucp-schemas.ts",
     "market-count": "tsx scripts/market-count.ts",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "pretest": "npm run build:content",
+    "predev": "npm run build:content",
+    "predeploy": "npm run build:content"
   },
   "dependencies": {
     "ajv": "^8.20.0",

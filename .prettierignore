@@ -3,6 +3,8 @@ vendor
 schemas
 src/ucp/generated
 src/content/fixGuides.generated.ts
+test/fixtures/fixtures.generated.ts
+test/fixtures/pages
 migrations
 .wrangler
 package-lock.json
