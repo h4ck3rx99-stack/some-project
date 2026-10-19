@@ -99,13 +99,22 @@ export function CategoryBars(p: { categories: CategoryScoreView[] }) {
         return (
           <div class="bar">
             <span>{CATEGORY_LABELS[cat]}</span>
-            <div
+            {/* SVG width attributes are not CSS, so the strict CSP (no inline styles) allows them. */}
+            <svg
               class="track"
+              viewBox="0 0 100 10"
+              preserveAspectRatio="none"
               role="img"
               aria-label={`${CATEGORY_LABELS[cat]}: ${score === null ? 'not scored' : `${Math.round(score)} of 100`}`}
             >
-              <div class="fill" style={`width:${score ?? 0}%`} />
-            </div>
+              <rect
+                class="fill"
+                x="0"
+                y="0"
+                height="10"
+                width={String(Math.max(0, Math.min(100, score ?? 0)))}
+              />
+            </svg>
             <span class="small">{score === null ? 'n/a' : Math.round(score)}</span>
           </div>
         );
@@ -234,7 +243,7 @@ export function CheckList(p: {
         const c = p.categories.find((x) => x.category === cat);
         return (
           <section class="card">
-            <h2 style="margin-top:0">
+            <h2 class="mt0">
               {CATEGORY_LABELS[cat]}{' '}
               <span class="muted small">
                 {c?.score === null || c?.score === undefined
@@ -266,15 +275,13 @@ export function CheckList(p: {
                       <span class="title">{r.title || def?.title || r.checkId}</span>
                       <span class="muted small">{r.severity}</span>
                     </div>
-                    <p style="margin:4px 0 0">{r.summary}</p>
+                    <p class="mt4">{r.summary}</p>
                     {(r.status === 'fail' || r.status === 'warn' || r.status === 'error') && def ? (
-                      <p class="muted small" style="margin:4px 0 0">
-                        Why it matters: {def.why}
-                      </p>
+                      <p class="muted small mt4">Why it matters: {def.why}</p>
                     ) : null}
                     <Evidence r={r} />
                     {p.fixLinks !== false && r.status !== 'pass' && r.status !== 'skip' ? (
-                      <p class="small" style="margin:6px 0 0">
+                      <p class="small mt6">
                         <a href={`/fix/${encodeURIComponent(r.fixGuide)}`}>How to fix</a>
                       </p>
                     ) : null}
@@ -325,8 +332,8 @@ export function ReportBody(p: { scan: ScanRow; results: CheckRecord[]; fixLinks?
     <>
       <div class="card report-head">
         <ScoreDial score={p.scan.score} grade={p.scan.grade} />
-        <div style="flex:1 1 320px;min-width:0">
-          <h2 style="margin:0 0 4px">{p.scan.grade ?? 'Not scored'}</h2>
+        <div class="grow">
+          <h2 class="mb4">{p.scan.grade ?? 'Not scored'}</h2>
           <p class="muted">
             {passed} checks passed · {warnings} warnings · {failing} issues found
           </p>

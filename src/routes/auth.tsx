@@ -36,7 +36,7 @@ authRoutes.get('/login', (c) => {
   const next = safeNext(c.req.query('next'));
   return c.html(
     <Layout title="Log in" user={c.var.user} csrf={c.var.csrf}>
-      <div style="max-width:440px">
+      <div class="w440">
         <h1>Log in or sign up</h1>
         {sent ? (
           <Notice>
@@ -50,7 +50,7 @@ authRoutes.get('/login', (c) => {
               <label for="email">Email</label>
               <input id="email" name="email" type="email" required autocomplete="email" />
               <input type="hidden" name="next" value={next} />
-              <p style="margin-top:12px">
+              <p class="mt12">
                 <button type="submit">Email me a link</button>
               </p>
             </form>

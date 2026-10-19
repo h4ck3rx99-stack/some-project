@@ -3,9 +3,9 @@ export const JS = `
 (function(){
   var el=document.querySelector('[data-poll]');
   if(el){
-    var url=el.getAttribute('data-poll'),bar=el.querySelector('.progress>div'),label=el.querySelector('[data-phase]');
+    var url=el.getAttribute('data-poll'),bar=el.querySelector('progress'),label=el.querySelector('[data-phase]');
     var tick=function(){fetch(url,{headers:{accept:'application/json'}}).then(function(r){return r.json()}).then(function(s){
-      if(bar)bar.style.width=(s.progress||0)+'%';if(label)label.textContent=s.phaseLabel||'';
+      if(bar)bar.value=s.progress||0;if(label)label.textContent=s.phaseLabel||'';
       if(s.status==='done'||s.status==='failed'){location.reload();return}setTimeout(tick,2000)}).catch(function(){setTimeout(tick,4000)})};
     setTimeout(tick,1500);
   }

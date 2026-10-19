@@ -64,15 +64,15 @@ publicRoutes.get('/', (c) => {
       user={c.var.user}
       csrf={c.var.csrf}
     >
-      <section style="padding:24px 0 8px">
+      <section class="hero">
         <h1>See your store the way AI shopping agents see it</h1>
-        <p class="muted" style="font-size:18px;max-width:720px">
+        <p class="muted lead">
           CartProbe checks your Universal Commerce Protocol (UCP) profile, catalog API and product data the
           way an AI shopping agent would, and tells you exactly what to fix. Free, in about a minute.
         </p>
         {err ? <Notice kind="error">{err}</Notice> : null}
         <ScanForm value={c.req.query('url')} />
-        <p class="muted small" style="margin-top:8px">
+        <p class="muted small mt8">
           Read-only: we never place orders or submit payments. We honour robots.txt.{' '}
           <a href="/bot">What we fetch</a>.
         </p>
@@ -81,7 +81,7 @@ publicRoutes.get('/', (c) => {
       <div class="grid three">
         {CATEGORIES.map((cat) => (
           <div class="card">
-            <h3 style="margin-top:0">{CATEGORY_LABELS[cat]}</h3>
+            <h3 class="mt0">{CATEGORY_LABELS[cat]}</h3>
             <p class="muted small">
               {CHECKS.filter((x) => x.category === cat)
                 .map((x) => x.title)
@@ -94,7 +94,7 @@ publicRoutes.get('/', (c) => {
       <div class="grid three">
         {PLAN_ORDER.filter((p) => p !== 'free').map((id) => (
           <div class="card">
-            <h3 style="margin-top:0">{PLANS[id].name}</h3>
+            <h3 class="mt0">{PLANS[id].name}</h3>
             <p>
               <b>${PLANS[id].priceMonthlyUsd}</b>/month · {PLANS[id].maxStores} store
               {PLANS[id].maxStores === 1 ? '' : 's'}
@@ -251,9 +251,7 @@ publicRoutes.get('/r/:slug', async (c) => {
           <p>
             <span data-phase>{phaseLabel(scan.phase)}</span>…
           </p>
-          <div class="progress" role="progressbar" aria-label="Scan progress">
-            <div style={`width:${progressOf(scan.phase)}%`} />
-          </div>
+          <progress class="progress" max={100} value={progressOf(scan.phase)} aria-label="Scan progress" />
           <p class="muted small">
             We fetch at most one page per second from your store, so sampling product pages takes a little
             while. This page refreshes itself.
@@ -274,7 +272,7 @@ publicRoutes.get('/r/:slug', async (c) => {
       <ReportBody scan={scan} results={results} />
       {scan.trigger === 'anonymous' ? (
         <div class="card">
-          <h2 style="margin-top:0">Monitor this store</h2>
+          <h2 class="mt0">Monitor this store</h2>
           <p>
             Things break silently after plugin updates, theme changes and spec releases. CartProbe re-scans
             daily and alerts you only when something meaningful changes.
@@ -328,7 +326,7 @@ publicRoutes.get('/pricing', (c) =>
           const p = PLANS[id];
           return (
             <div class="card plan">
-              <h2 style="margin-top:0">{p.name}</h2>
+              <h2 class="mt0">{p.name}</h2>
               <p>
                 <span class="price">${p.priceMonthlyUsd}</span>
                 {p.priceMonthlyUsd ? <span class="muted">/month · ${annualPriceUsd(p)}/year</span> : null}
@@ -371,7 +369,7 @@ publicRoutes.get('/pricing', (c) =>
 publicRoutes.get('/docs', (c) =>
   c.html(
     <Layout title="How scoring works" user={c.var.user} csrf={c.var.csrf}>
-      <article class="prose" style="max-width:none">
+      <article class="prose wnone">
         <h1>How CartProbe scores your store</h1>
         <p>
           Every check returns pass, warning, fail, skip or error. Inside a category each applicable check is

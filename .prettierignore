@@ -6,7 +6,7 @@ src/content/fixGuides.generated.ts
 test/fixtures/fixtures.generated.ts
 test/fixtures/pages
 migrations
-.wrangler
+**/.wrangler
 package-lock.json
 content/fix
 test/fixtures/**/*.json

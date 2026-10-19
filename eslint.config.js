@@ -2,7 +2,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['node_modules', 'vendor', 'schemas', '.wrangler', 'src/ucp/generated/**', 'migrations'] },
+  { ignores: ['node_modules', 'vendor', 'schemas', '**/.wrangler/**', 'src/ucp/generated/**', 'migrations'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

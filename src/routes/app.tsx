@@ -110,8 +110,8 @@ appRoutes.get('/', async (c) => {
     : [];
   return c.html(
     <Page c={c} title="Dashboard">
-      <div class="row" style="align-items:center">
-        <h1 style="margin:0">Your stores</h1>
+      <div class="row center">
+        <h1 class="m0">Your stores</h1>
         <a class="btn" href="/app/stores/new">
           Add store
         </a>
@@ -200,7 +200,7 @@ appRoutes.get('/stores/new', (c) => {
           Your plan does not include monitored stores. <a href="/app/billing">Upgrade</a> to add one.
         </Notice>
       ) : null}
-      <form method="post" action="/app/stores/new" class="card" style="max-width:560px">
+      <form method="post" action="/app/stores/new" class="card w560">
         <Csrf token={c.var.csrf} />
         <label for="url">Store URL</label>
         <input
@@ -211,11 +211,11 @@ appRoutes.get('/stores/new', (c) => {
           value={c.req.query('url') ?? ''}
           placeholder="https://yourstore.com"
         />
-        <label for="name" style="margin-top:12px">
+        <label class="mt12" for="name">
           Name (optional)
         </label>
         <input id="name" name="name" type="text" maxlength={80} />
-        <p style="margin-top:12px">
+        <p class="mt12">
           <button type="submit">Add and scan</button>
         </p>
       </form>
@@ -338,9 +338,7 @@ appRoutes.get('/stores/:id', async (c) => {
           <p>
             Scan in progress: <span data-phase>…</span>
           </p>
-          <div class="progress">
-            <div style="width:5%" />
-          </div>
+          <progress class="progress" max={100} value={5} aria-label="Scan progress" />
         </div>
       ) : null}
       <div class="card">
@@ -385,7 +383,7 @@ appRoutes.get('/stores/:id', async (c) => {
           </form>
         </div>
         {store.badgeEnabled && plan.badges ? (
-          <p class="small" style="margin-top:10px">
+          <p class="small mt10">
             Badge: <code id="badge-url" class="mono">{`${c.var.env.APP_URL}/badge/${store.id}.svg`}</code>
             <button class="secondary copy" type="button" data-copy="badge-url">
               Copy
@@ -515,7 +513,7 @@ function VerifyPage(p: { c: Ctx; store: Store; result?: { ok: boolean; details: 
       <p>Verification unlocks deep checkout testing. Use either method:</p>
       <div class="grid two">
         <div class="card">
-          <h3 style="margin-top:0">DNS TXT record</h3>
+          <h3 class="mt0">DNS TXT record</h3>
           <p>
             Add a TXT record on <code>{s.domain}</code> with the value:
           </p>
@@ -527,7 +525,7 @@ function VerifyPage(p: { c: Ctx; store: Store; result?: { ok: boolean; details: 
           </p>
         </div>
         <div class="card">
-          <h3 style="margin-top:0">File</h3>
+          <h3 class="mt0">File</h3>
           <p>
             Serve <code>{`https://${s.domain}/.well-known/cartprobe-verify.txt`}</code> containing only:
           </p>
@@ -600,12 +598,7 @@ appRoutes.get('/stores/:id/checkout-testing', async (c) => {
             endpoint below, validates it, and immediately cancels it. CartProbe never sends payment details
             and never completes a checkout.
           </p>
-          <form
-            method="post"
-            action={`/app/stores/${store.id}/checkout-testing`}
-            class="card"
-            style="max-width:640px"
-          >
+          <form method="post" action={`/app/stores/${store.id}/checkout-testing`} class="card w640">
             <Csrf token={c.var.csrf} />
             <label for="endpoint">Test-mode REST endpoint (UCP shopping service base URL)</label>
             <input
@@ -617,7 +610,7 @@ appRoutes.get('/stores/:id/checkout-testing', async (c) => {
             />
             <p class="muted small">Must be https on {store.domain} or a subdomain.</p>
             <p>
-              <label style="font-weight:400">
+              <label class="fw400">
                 <input type="checkbox" name="confirm" value="1" checked={!!store.testModeConfirmedAt} /> I
                 confirm this endpoint is in test mode
               </label>
@@ -709,24 +702,24 @@ appRoutes.get('/alerts', async (c) => {
         </table>
       </div>
       {plan.alertChannels.length ? (
-        <form method="post" action="/app/alerts" class="card" style="max-width:640px">
+        <form method="post" action="/app/alerts" class="card w640">
           <Csrf token={c.var.csrf} />
-          <h3 style="margin-top:0">Add a channel</h3>
+          <h3 class="mt0">Add a channel</h3>
           <label for="type">Type</label>
           <select id="type" name="type">
             {plan.alertChannels.map((t) => (
               <option value={t}>{t}</option>
             ))}
           </select>
-          <label for="target" style="margin-top:10px">
+          <label class="mt10" for="target">
             Email address or https URL (Slack: https://hooks.slack.com/…)
           </label>
           <input id="target" name="target" type="text" required maxlength={500} />
-          <label for="label" style="margin-top:10px">
+          <label class="mt10" for="label">
             Label
           </label>
           <input id="label" name="label" type="text" maxlength={60} />
-          <p style="margin-top:12px">
+          <p class="mt12">
             <button type="submit">Add channel</button>
           </p>
         </form>
@@ -867,7 +860,7 @@ appRoutes.get('/billing', async (c) => {
           const url = provider.checkoutUrl(id, account.id);
           return (
             <div class="card">
-              <h3 style="margin-top:0">{PLANS[id].name}</h3>
+              <h3 class="mt0">{PLANS[id].name}</h3>
               <p>${PLANS[id].priceMonthlyUsd}/month</p>
               {plan.id === id ? (
                 <span class="chip s-pass">Current plan</span>
@@ -916,16 +909,14 @@ appRoutes.get('/reports/:scanId/print', async (c) => {
     );
   const html = (
     <Layout title={`${scan.domain} — ${brand}`} bare noindex>
-      <div class="row no-print" style="margin-bottom:12px">
+      <div class="row no-print mb12">
         <p class="muted small">Use your browser's Print → Save as PDF to create a PDF.</p>
       </div>
-      <header style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
-        {logo ? <img src={logo} alt={brand} style="max-height:48px;max-width:200px" /> : null}
+      <header class="brandhead">
+        {logo ? <img class="logo" src={logo} alt={brand} /> : null}
         <div>
-          <h1 style="margin:0">Agent readiness report</h1>
-          <p class="muted" style="margin:0">
-            Prepared by {brand}
-          </p>
+          <h1 class="m0">Agent readiness report</h1>
+          <p class="muted m0">Prepared by {brand}</p>
         </div>
       </header>
       <ReportBody scan={scan} results={results} fixLinks={false} />
@@ -991,7 +982,7 @@ appRoutes.get('/api-keys', async (c) => {
           </tbody>
         </table>
       </div>
-      <form method="post" action="/app/api-keys" class="card row" style="max-width:640px">
+      <form method="post" action="/app/api-keys" class="card row w640">
         <Csrf token={c.var.csrf} />
         <div>
           <label for="label">Label</label>
@@ -1053,7 +1044,7 @@ appRoutes.get('/settings', async (c) => {
   return c.html(
     <Page c={c} title="Settings">
       <h1>Settings</h1>
-      <form method="post" action="/app/settings" class="card" style="max-width:640px">
+      <form method="post" action="/app/settings" class="card w640">
         <Csrf token={c.var.csrf} />
         <label for="name">Account name</label>
         <input id="name" name="name" type="text" required maxlength={80} value={account.name} />
@@ -1068,7 +1059,7 @@ appRoutes.get('/settings', async (c) => {
               maxlength={80}
               value={account.whiteLabelName ?? ''}
             />
-            <label for="wl_logo" style="margin-top:10px">
+            <label class="mt10" for="wl_logo">
               Logo URL (https)
             </label>
             <input
@@ -1079,7 +1070,7 @@ appRoutes.get('/settings', async (c) => {
               value={account.whiteLabelLogoUrl ?? ''}
             />
             <p>
-              <label style="font-weight:400">
+              <label class="fw400">
                 <input
                   type="checkbox"
                   name="hide_footer"
@@ -1091,13 +1082,13 @@ appRoutes.get('/settings', async (c) => {
             </p>
           </>
         ) : null}
-        <p style="margin-top:12px">
+        <p class="mt12">
           <button type="submit">Save</button>
         </p>
       </form>
       {plan.maxMembers > 1 ? (
-        <div class="card" style="max-width:640px">
-          <h3 style="margin-top:0">Members</h3>
+        <div class="card w640">
+          <h3 class="mt0">Members</h3>
           <ul>
             {members.map((m) => (
               <li>

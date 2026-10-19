@@ -43,6 +43,17 @@ describe('claims discipline', () => {
   });
 });
 
+describe('CSP compatibility', () => {
+  it('views and routes use no inline style attributes (blocked by style-src self)', () => {
+    const offenders = Object.entries(SOURCES)
+      .filter(([f]) => f.endsWith('.tsx'))
+      .flatMap(([f, text]) => text.split('\n').map((l, i) => [f, i + 1, l] as const))
+      .filter(([, , l]) => /\sstyle=/.test(l))
+      .map(([f, i, l]) => `${f}:${i}: ${l.trim()}`);
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('fix guides', () => {
   it('every check has a fix guide with fix, WooCommerce and verify sections', () => {
     for (const c of CHECKS) {
