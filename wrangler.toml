@@ -1,0 +1,36 @@
+name = "cartprobe"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Cron schedule (all UTC). See src/jobs/schedule.ts for what each one does.
+[triggers]
+crons = ["* * * * *", "0 1 * * *", "0 2 * * *", "30 3 * * 1"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cartprobe"
+database_id = "00000000-0000-0000-0000-000000000000" # replace after `wrangler d1 create cartprobe`
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "CAPTURES"
+bucket_name = "cartprobe-captures"
+
+[vars]
+ENVIRONMENT = "production"
+APP_URL = "https://cartprobe.example"
+APP_DOMAIN = "cartprobe.example"
+EMAIL_PROVIDER = "console"
+EMAIL_FROM = "CartProbe <alerts@cartprobe.example>"
+BILLING_PROVIDER = "manual"
+ADMIN_EMAILS = ""
+CHECKOUT_URL_STORE = ""
+CHECKOUT_URL_AGENCY = ""
+CHECKOUT_URL_VENDOR = ""
+MOCK_STORE_ORIGIN = ""
+
+[observability]
+enabled = true
+
+# Local development: `wrangler dev --env dev` is not needed; .dev.vars overrides vars locally.

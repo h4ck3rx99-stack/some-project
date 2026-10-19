@@ -1,0 +1,8 @@
+node_modules
+vendor
+schemas
+src/ucp/generated
+src/content/fixGuides.generated.ts
+migrations
+.wrangler
+package-lock.json

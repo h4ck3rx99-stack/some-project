@@ -1,0 +1,7 @@
+Copyright (c) 2026 Aayush Kumar. All rights reserved.
+
+This software and its source code are proprietary and confidential. No part of it may be
+copied, modified, distributed, or used without the prior written permission of the copyright holder.
+
+Vendored third-party files keep their own licenses: see schemas/ucp/LICENSE and schemas/ucp/NOTICE
+(Universal Commerce Protocol schemas, Apache-2.0) and docs/THIRD_PARTY.md.
